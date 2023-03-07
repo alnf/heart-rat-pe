@@ -2,8 +2,10 @@
 
 - [Infrastructure configuration](#infrastructure-configuration)
   - [Configuring storage](#configuring-storage)
+  - [SSH connection](#ssh-connection)
   - [Configuring services](#configuring-services)
     - [RStudio server](#rstudio-server)
+    - [JupyterHub](#jupyterhub)
 
 
 The work is done using [denbi-cloud.bioquant.uni-heidelberg.de](https://denbi-cloud.bioquant.uni-heidelberg.de) resources.
@@ -52,7 +54,32 @@ isiloncl1-487.denbi.bioquant.uni-heidelberg.de:/ifs/denbi/manila-prod/YOUR-SHARE
 
 Now even after the VM reboot all storages will be automatically mounted.
 
+## SSH connection
+
+In order to connect to the VM directly, without the need to go through the jump host first, one needs to [configure ProxyJump](https://cloud.denbi.de/wiki/Compute_Center/Heidelberg/#connecting-to-your-vms-directly) in the ssh config.
+
 ## Configuring services
 
 ### RStudio server
 
+The overall deNBI manual is [here](https://cloud.denbi.de/wiki/Tutorials/RStudio_Server/). But we will also follow official RStudio Server installation [manual](https://posit.co/download/rstudio-server/).
+
+Do not forget to set up the password for the default Ubuntu user. After we configure ProxyJump it is easy to ssh port-forward to use RStudio Server.
+
+```bash
+ssh ubuntu@ip-address -L 8787:localhost:8787
+```
+
+### JupyterHub
+
+JupyterHub [installation](https://jupyterhub.readthedocs.io/en/stable/quickstart.html) is quite straightforward. We will install it inside conda environment to avoid versions conflicts. I've also had to add additional command:
+
+```bash
+pip install jupyter
+```
+
+Port forwarding is as usual:
+
+```bash
+ssh ubuntu@ip-address -L 8000:localhost:8000
+```
