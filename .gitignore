@@ -1,3 +1,8 @@
+
 *.ipynb_checkpoints*
 config.yaml
 metadata/
+degs/
+plots/
+docs/
+*RData
