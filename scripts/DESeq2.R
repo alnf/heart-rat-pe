@@ -5,6 +5,7 @@ library(dplyr)
 library(biomaRt)
 library(ggfortify)
 library(RColorBrewer)
+library(VennDiagram)
 
 # Read metadata
 metadata <- read.table("../metadata/P2022_metadata.tsv", sep="\t", header = T)
@@ -20,18 +21,18 @@ names(kal_dirs) <- metadata$SampleID
 metadata <- merge(metadata, kal_df, by="SampleID")
 
 # Create transcript to gene mapping
-
 ensembl <- useEnsembl(biomart = "genes", version=109)
 ensembl <- useDataset(dataset = "rnorvegicus_gene_ensembl", mart = ensembl)
 t2g <- biomaRt::getBM(attributes = c("ensembl_transcript_id", "ensembl_gene_id",
-                                     "rgd_symbol", "entrezgene_description"), mart = ensembl)
+                                     "rgd_symbol", "mgi_symbol", "entrezgene_description"), mart = ensembl)
 t2g <- dplyr::rename(t2g, target_id = ensembl_transcript_id,
-                     ens_gene = ensembl_gene_id, symbol = rgd_symbol, description=entrezgene_description)
+                     ens_gene = ensembl_gene_id, symbol = rgd_symbol, msymbol = mgi_symbol, description=entrezgene_description)
 
 # Import kallisto data
 files <- file.path(kal_dirs, "abundance.h5")
 txi.kallisto <- tximport(files, type = "kallisto", tx2gene=t2g[,1:2], ignoreTxVersion = T, txOut = F)
-head(txi.kallisto$counts)
+counts <- txi.kallisto$counts
+head(counts)
 
 # PCA plots
 pca <- prcomp(t(log2(txi.kallisto$counts+0.5)))
@@ -62,6 +63,7 @@ ind <- which(!grepl("Auge", metadata$Group) & grepl("pp", metadata$Group) & grep
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
 ggsave("../plots/PCA_pp_PE_no_auge.png", width=5, height=3)
+
 # Remove outlier
 ind <- ind[-which(ind==105)]
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
@@ -97,6 +99,7 @@ ind <- which(grepl("Auge", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
 ggsave("../plots/PCA_Auge.png", width=5, height=3)
+
 ind <- ind[-which(ind==150)]
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
@@ -105,16 +108,158 @@ autoplot(pca, data = metadata[ind,], colour = 'Group', x=2, y=3)
 ggsave("../plots/PCA_Auge_no_outlier_2_3.png", width=5, height=3)
 
 # Create DESeq object
-outliers = c(105, 150)
+outliers = c(7, 105, 150)
 auge = c(141:175)
 nonauge = c(1:140)
 
-remove = c(outliers, auge)
-remove = c(outliers, nonauge)
-
-remove <- remove[-which(duplicated(remove))]
+auge.ind = c(outliers, auge)
+auge.ind <- auge.ind[-which(duplicated(auge.ind))]
+heart.ind = c(outliers, nonauge)
+heart.ind <- heart.ind[-which(duplicated(heart.ind))]
 
 dds <- DESeqDataSetFromTximport(txi.kallisto, metadata, ~ 0 + Group)
+#dds.back <- dds
+
+######### Heart analysis
+dds.h <- dds[, -which(dds$SampleNumber %in% auge.ind)]
+metadata.h <- metadata[-auge.ind,]
+dds.h$Group <- factor(metadata.h$Group)
+
+exprs.h.vst <- vst(dds.h, blind=TRUE)
+exprs.h <- assay(exprs.h.vst)
+colnames(exprs.h) <- metadata.h$SampleNumber
+colnames(exprs.h)
+
+### Differential expression in heart
+dds.h <- DESeq(dds.h)
+resultsNames(dds.h)
+counts.dds.h <- counts(dds.h,normalized=TRUE)
+
+source("utils.R")
+
+contrast = c("Group","LV_PEd21","LV_SDd21")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+contrast = c("Group","LV_PEpp","LV_SDpp")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+contrast = c("Group","LV_SDd21","LV_np")
+getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
+
+contrast = c("Group","LV_SDpp","LV_np")
+getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
+
+contrast = c("Group","LV_PEd21","LV_np")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+contrast = c("Group","LV_PEpp","LV_np")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+contrast = c("Group","LV_SDd21","LV_SDpp")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+contrast = c("Group","LV_PEd21","LV_PEpp")
+getDEGs(dds.h, contrast, t2g, width=7, height=5)
+
+### Single gene plots
+
+my_comparisons <- list(c("preterm34weeksnoFGR", "term37weeksnoFGR"))
+ggboxplot(data=pdata.ol, x="Condition", y="bmi", color="Condition", palette = "jco", add = "jitter") +
+  stat_compare_means(method = "t.test", comparisons = my_comparisons)
+
+
+
+### Venn diagrams
+region = "LV"
+
+fname = paste(region, "PEd21", region, "SDd21", sep="_")
+PEd21_SDd21 <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+
+fname = paste(region, "PEpp", region, "SDpp", sep="_")
+PEpp_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+
+fname = paste(region, "PEd21", region, "PEpp", sep="_")
+PEd21_PEpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+
+fname = paste(region, "SDd21", region, "SDpp", sep="_")
+SDd21_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+
+myCol <- brewer.pal(3, "Pastel2")
+venn.diagram(
+  x = list(PEd21_SDd21$symbol, PEpp_SDpp$symbol),
+  category.names = c("PEd21_SDd21" , "PEpp_SDpp"),
+  filename = '../plots/WT/LV/venn_diagramm1.png',
+  output=TRUE,
+  
+  # Output features
+  imagetype="png" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  
+  # Circles
+  lwd = 2,
+  lty = 'blank',
+  fill = myCol[1:2],
+  
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-5, 5),
+  cat.dist = c(0.055, 0.055)
+)
+
+myCol <- brewer.pal(4, "Pastel2")
+venn.diagram(
+  x = list(SDd21_SDpp$symbol, PEd21_PEpp$symbol),
+  category.names = c("SDd21_SDpp" , "PEd21_PEpp"),
+  filename = '../plots/WT/LV/venn_diagramm2.png',
+  output=TRUE,
+  
+  # Output features
+  imagetype="png" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  
+  # Circles
+  lwd = 2,
+  lty = 'blank',
+  fill = myCol[3:4],
+  
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-5, 5),
+  cat.dist = c(0.055, 0.055)
+)
+
+dd <- intersect(SDd21_SDpp$symbol, PEd21_PEpp$symbol)
+
+
+dd <- intersect(PEd21_SDd21$symbol, PEpp_SDpp$symbol)
+
+ss <- PEpp_SDpp$symbol[!(PEpp_SDpp$symbol %in% dd)]
+######### Eye analysis
+
+
+
+
+#########
 dds <- dds[, -which(dds$SampleNumber %in% remove)]
 dds$Group <- factor(metadata$Group[-remove])
 
@@ -125,22 +270,6 @@ colnames(vstd_mat)
 metadata.short <- metadata[-remove,]
 
 ############ Differential analysis
-
-# LRT
-design(dds) <- ~ 0 + Group
-dds<-DESeq(dds, test = "LRT", full = ~ 0 + Group, reduced = ~1)
-resultsNames(dds)
-
-res <- results(dds)
-betas <- coef(dds)
-colnames(betas)
-
-## LV vs RV vs Sept vs Ap: PEd21
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
 
 # Wald
 dds <- DESeq(dds)
