@@ -137,909 +137,127 @@ counts.dds.h <- counts(dds.h,normalized=TRUE)
 
 source("utils.R")
 
-contrast = c("Group","LV_PEd21","LV_SDd21")
+region = "Ap"
+contrast = c("Group","PEd21","SDd21")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-contrast = c("Group","LV_PEpp","LV_SDpp")
+contrast = c("Group","PEpp","SDpp")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-contrast = c("Group","LV_SDd21","LV_np")
+contrast = c("Group","SDd21","np")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
 
-contrast = c("Group","LV_SDpp","LV_np")
+contrast = c("Group","SDpp","np")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
+#For RV and Ap
+#getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5, sval.filter=FALSE)
 getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
 
-contrast = c("Group","LV_PEd21","LV_np")
+contrast = c("Group","PEd21","np")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-contrast = c("Group","LV_PEpp","LV_np")
+contrast = c("Group","PEpp","np")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-contrast = c("Group","LV_SDd21","LV_SDpp")
+contrast = c("Group","SDd21","SDpp")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-contrast = c("Group","LV_PEd21","LV_PEpp")
+contrast = c("Group","PEd21","PEpp")
+contrast[2:3] <- paste(region, contrast[2:3], sep="_")
 getDEGs(dds.h, contrast, t2g, width=7, height=5)
 
-### Single gene plots
-
-my_comparisons <- list(c("preterm34weeksnoFGR", "term37weeksnoFGR"))
-ggboxplot(data=pdata.ol, x="Condition", y="bmi", color="Condition", palette = "jco", add = "jitter") +
-  stat_compare_means(method = "t.test", comparisons = my_comparisons)
-
-
-
-### Venn diagrams
-region = "LV"
+### All genes
+types = c("_short.tsv", ".tsv")
+type = types[1]
 
 fname = paste(region, "PEd21", region, "SDd21", sep="_")
-PEd21_SDd21 <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+PEd21_SDd21 <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
 fname = paste(region, "PEpp", region, "SDpp", sep="_")
-PEpp_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+PEpp_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
 fname = paste(region, "PEd21", region, "PEpp", sep="_")
-PEd21_PEpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+PEd21_PEpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
 fname = paste(region, "SDd21", region, "SDpp", sep="_")
-SDd21_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", header = T)
+SDd21_SDpp <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-myCol <- brewer.pal(3, "Pastel2")
-venn.diagram(
-  x = list(PEd21_SDd21$symbol, PEpp_SDpp$symbol),
-  category.names = c("PEd21_SDd21" , "PEpp_SDpp"),
-  filename = '../plots/WT/LV/venn_diagramm1.png',
-  output=TRUE,
-  
-  # Output features
-  imagetype="png" ,
-  height = 480 , 
-  width = 480 , 
-  resolution = 300,
-  compression = "lzw",
-  
-  # Circles
-  lwd = 2,
-  lty = 'blank',
-  fill = myCol[1:2],
-  
-  # Numbers
-  cex = .6,
-  fontface = "bold",
-  fontfamily = "sans",
-  
-  # Set names
-  cat.cex = 0.6,
-  cat.fontface = "bold",
-  cat.default.pos = "outer",
-  cat.pos = c(-5, 5),
-  cat.dist = c(0.055, 0.055)
-)
+fname = paste(region, "PEd21", region, "np", sep="_")
+PEd21_np <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-myCol <- brewer.pal(4, "Pastel2")
-venn.diagram(
-  x = list(SDd21_SDpp$symbol, PEd21_PEpp$symbol),
-  category.names = c("SDd21_SDpp" , "PEd21_PEpp"),
-  filename = '../plots/WT/LV/venn_diagramm2.png',
-  output=TRUE,
-  
-  # Output features
-  imagetype="png" ,
-  height = 480 , 
-  width = 480 , 
-  resolution = 300,
-  compression = "lzw",
-  
-  # Circles
-  lwd = 2,
-  lty = 'blank',
-  fill = myCol[3:4],
-  
-  # Numbers
-  cex = .6,
-  fontface = "bold",
-  fontfamily = "sans",
-  
-  # Set names
-  cat.cex = 0.6,
-  cat.fontface = "bold",
-  cat.default.pos = "outer",
-  cat.pos = c(-5, 5),
-  cat.dist = c(0.055, 0.055)
-)
+fname = paste(region, "PEpp", region, "np", sep="_")
+PEpp_np <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-dd <- intersect(SDd21_SDpp$symbol, PEd21_PEpp$symbol)
+fname = paste(region, "SDd21", region, "np", sep="_")
+SDd21_np <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
+fname = paste(region, "SDpp", region, "np", sep="_")
+SDpp_np <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
+
+all_genes <- c()
+all_genes$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene, PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene,
+                               PEd21_np$ens_gene, PEpp_np$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene))
+all_genes <- as.data.frame(all_genes)
+
+# Venn diagram: SD vs PE
+names = c("PEd21_SDd21" , "PEpp_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/WT/", region, "/venn_", fname, ".png", sep="")
+makeVenn(2, list(PEd21_SDd21$symbol, PEpp_SDpp$symbol), names, region,
+         fname, brewer.pal(3, "Pastel2")[1:2])
 
 dd <- intersect(PEd21_SDd21$symbol, PEpp_SDpp$symbol)
+ss <- PEd21_SDd21$symbol[!(PEd21_SDd21$symbol %in% dd)]
 
-ss <- PEpp_SDpp$symbol[!(PEpp_SDpp$symbol %in% dd)]
-######### Eye analysis
+### Single gene plots
+source("utils.R")
+groups <- dds.h$Group[grepl(region, dds.h$Group)]
+#gene = "ENSRNOG00000048222"
+gene = "ENSRNOG00000016451"
+title = unique(t2g$symbol[which(t2g$ens_gene==gene)])
+my_comparisons <- list(c("LV_PEd21", "LV_SDd21"), c("LV_PEpp", "LV_SDpp"))
+fname = paste("../plots/WT/", region, "/gene_", title, ".png", sep="")
+genePlot(dds.h, gene, "Group", groups, my_comparisons, fname, title)
 
+### Region heatmap
+source("utils.R")
+regionPlot(dds.h, region, all_genes$ens_gene)
+#regionPlot(dds.h, region, rownames(dds.h))
 
 
+### Venn between regions
+comparisons <- c("PEd21", "SDd21")
+comparisons <- c("PEpp", "SDpp")
 
-#########
-dds <- dds[, -which(dds$SampleNumber %in% remove)]
-dds$Group <- factor(metadata$Group[-remove])
+region = "LV"
+fname = paste(region, comparisons[1], region, comparisons[2], sep="_")
+LV <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-vstd <- vst(dds, blind=TRUE)
-vstd_mat <- assay(vstd)
-colnames(vstd_mat) <- metadata$SampleNumber[-remove]
-colnames(vstd_mat)
-metadata.short <- metadata[-remove,]
+region = "RV"
+fname = paste(region, comparisons[1], region, comparisons[2], sep="_")
+RV <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-############ Differential analysis
+region = "Sept"
+fname = paste(region, comparisons[1], region, comparisons[2], sep="_")
+Sept <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
-# Wald
-dds <- DESeq(dds)
-resultsNames(dds)
+region = "Ap"
+fname = paste(region, comparisons[1], region, comparisons[2], sep="_")
+Ap <- read.table(paste("../degs/WT/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
+names = c("LV", "RV", "Sept", "Ap")
+fname = paste(comparisons, collapse="_")
+all_genes <- unique(c(LV$symbol, RV$symbol, Sept$symbol, Ap$symbol))
+title = paste(fname, ", ngenes=", length(all_genes), sep="")
+makeVenn(4, list(LV$symbol, RV$symbol, Sept$symbol, Ap$symbol), names, title,
+         paste("../plots/WT/venn_regions_", fname, ".png", sep=""),
+         brewer.pal(4, "Pastel2"), dist = 0.1)
 
-## LV: PEd21 vs SD21
-res <- results(dds, contrast=c("Group","LV_PEd21","LV_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","LV_PEd21","LV_SDd21"), type="ashr")
 
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
 
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_PEd21_LV_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_PEd21","LV_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_PEd21_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-  
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## LV: PEpp vs SDpp
-res <- results(dds, contrast=c("Group","LV_PEpp","LV_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","LV_PEpp","LV_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_PEpp_LV_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_PEpp","LV_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_PEpp_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## LV: np vs SD21
-res <- results(dds, contrast=c("Group","LV_np","LV_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","LV_np","LV_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_np_LV_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_np","LV_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_np_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## LV: np vs SDpp
-res <- results(dds, contrast=c("Group","LV_np","LV_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","LV_np","LV_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_np_LV_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_np","LV_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_np_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-
-## RV: PEd21 vs SD21
-res <- results(dds, contrast=c("Group","RV_PEd21","RV_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","RV_PEd21","RV_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/RV_PEd21_RV_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("RV_PEd21","RV_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "RV_PEd21_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## LV: np vs PE21
-res <- results(dds, contrast=c("Group","LV_np","LV_PEd21"))
-res <- lfcShrink(dds, contrast=c("Group","LV_np","LV_PEd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_np_LV_PEd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_np","LV_PEd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_np_PEd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## LV: np vs PEpp
-res <- results(dds, contrast=c("Group","LV_np","LV_PEpp"))
-res <- lfcShrink(dds, contrast=c("Group","LV_np","LV_PEpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/LV_np_LV_PEpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("LV_np","LV_PEpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "LV_np_PEpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[-c(1,2),]
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-
-
-## RV: PEpp vs SDpp
-res <- results(dds, contrast=c("Group","RV_PEpp","RV_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","RV_PEpp","RV_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/RV_PEpp_RV_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("RV_PEpp","RV_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "RV_PEpp_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Sept: PEd21 vs SD21
-res <- results(dds, contrast=c("Group","Sept_PEd21","Sept_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","Sept_PEd21","Sept_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Sept_PEd21_Sept_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Sept_PEd21","Sept_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Sept_PEd21_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Sept: PEpp vs SDpp
-res <- results(dds, contrast=c("Group","Sept_PEpp","Sept_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","Sept_PEpp","Sept_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Sept_PEpp_Sept_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Sept_PEpp","Sept_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Sept_PEpp_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Ap: PEd21 vs SD21
-res <- results(dds, contrast=c("Group","Ap_PEd21","Ap_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","Ap_PEd21","Ap_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Ap_PEd21_Ap_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Ap_PEd21","Ap_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Ap_PEd21_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Ap: PEpp vs SDpp
-res <- results(dds, contrast=c("Group","Ap_PEpp","Ap_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","Ap_PEpp","Ap_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Ap_PEpp_Ap_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Ap_PEpp","Ap_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Ap_PEpp_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Auge: PEd21 vs SD21
-res <- results(dds, contrast=c("Group","Auge_PEd21","Auge_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_PEd21","Auge_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_PEd21_Auge_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_PEd21","Auge_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_PEd21_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Auge: PEpp vs SDpp
-res <- results(dds, contrast=c("Group","Auge_PEpp","Auge_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_PEpp","Auge_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_PEpp_Auge_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_PEpp","Auge_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_PEpp_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Auge: np vs SD21
-res <- results(dds, contrast=c("Group","Auge_np","Auge_SDd21"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_np","Auge_SDd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_np_Auge_SDd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_np","Auge_SDd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_np_SDd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Auge: np vs SDpp
-res <- results(dds, contrast=c("Group","Auge_np","Auge_SDpp"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_np","Auge_SDpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_np_Auge_SDpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_np","Auge_SDpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_np_SDpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-
-## Auge: np vs PEd21
-res <- results(dds, contrast=c("Group","Auge_np","Auge_PEd21"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_np","Auge_PEd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_np_Auge_PEd21.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_np","Auge_PEd21"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_np_PEd21"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-## Auge: np vs SDpp
-res <- results(dds, contrast=c("Group","Auge_np","Auge_PEpp"))
-res <- lfcShrink(dds, contrast=c("Group","Auge_np","Auge_PEpp"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 2)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-write.table(resTable, "../degs/Auge_np_Auge_PEpp.tsv", sep="\t", row.names = F)
-
-ind = which(metadata.short$Group %in% c("Auge_np","Auge_PEpp"))
-cluster_vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-cluster_vst_cor <- cor(cluster_vst)
-color = hue_pal()(2)
-names(color) <- levels(factor(metadata.short[ind,]$Group))
-annoCol <- list(Group = color)
-txt = "Auge_np_PEpp"
-pheatmap(cluster_vst_cor, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_cor_", txt, ".png", sep=""),
-         width = 7, height = 5)
-
-resTable <- resTable[which(resTable$symbol!=""),]
-
-vst <- vstd_mat[resTable$ens_gene, as.character(metadata.short$SampleNumber[ind])]
-rownames(vst) <- resTable$symbol
-
-pheatmap(vst, annotation = metadata.short[ind,c("Group"), drop=F], annotation_colors = annoCol,
-         filename = paste("../plots/WT/heatmap_vst_", txt, ".png", sep=""), scale = "row",
-         width = 8, height = 11)
-
-
-###########################3
-## LV vs RV: PEd21
-res <- results(dds, contrast=c("Group","LV_PEd21","RV_PEd21"))
-res <- lfcShrink(dds, contrast=c("Group","LV_PEd21","RV_PEd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/LV_PEd21_RV_PEd21.tsv", sep="\t", row.names = F)
-
-## RV: PEd21 vs PEpp
-res <- results(dds, contrast=c("Group","RV_PEpp","RV_PEd21"))
-res <- lfcShrink(dds, contrast=c("Group","RV_PEpp","RV_PEd21"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/RV_PEpp_RV_PEd21.tsv", sep="\t", row.names = F)
-
-## RV: np vs PEpp
-res <- results(dds, contrast=c("Group","RV_PEpp","RV_np"))
-res <- lfcShrink(dds, contrast=c("Group","RV_PEpp","RV_np"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/RV_PEpp_RV_np.tsv", sep="\t", row.names = F)
-
-## LV: np vs PEpp
-res <- results(dds, contrast=c("Group","LV_PEpp","LV_np"))
-res <- lfcShrink(dds, contrast=c("Group","LV_PEpp","LV_np"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/LV_PEpp_LV_np.tsv", sep="\t", row.names = F)
-
-## LV: np vs SDpp
-res <- results(dds, contrast=c("Group","LV_SDpp","LV_np"))
-res <- lfcShrink(dds, contrast=c("Group","LV_SDpp","LV_np"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/LV_SDpp_LV_np.tsv", sep="\t", row.names = F)
-
-## RV: np vs SDpp
-res <- results(dds, contrast=c("Group","RV_SDpp","RV_np"))
-res <- lfcShrink(dds, contrast=c("Group","RV_SDpp","RV_np"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/RV_SDpp_RV_np.tsv", sep="\t", row.names = F)
-
-## RV: np vs SDd21
-res <- results(dds, contrast=c("Group","RV_SDd21","RV_np"))
-res <- lfcShrink(dds, contrast=c("Group","RV_SDd21","RV_np"), type="ashr")
-
-resTable <- data.frame(res)
-resTable <- resTable %>% filter(padj <= 0.05)
-resTable <- resTable %>% filter(abs(log2FoldChange) > 1)
-
-resTable$ens_gene <- rownames(resTable)
-
-resTable <- merge(resTable, t2g, by="ens_gene")
-resTable <- resTable[!duplicated(resTable$ens_gene),]
-resTable <- resTable %>% arrange(desc(abs(log2FoldChange)))
-
-write.table(resTable, "../degs/RV_SDd21_RV_np.tsv", sep="\t", row.names = F)
-
-
-# Heatmap
-
-my_sample_col <- data.frame(ProtocolNum = pm$ProtocolNum)
-row.names(my_sample_col) <- colnames(bc)
-
-my_colors <- RColorBrewer::brewer.pal(8, "Set3")
-names(my_colors) <- levels(pm$ProtocolNum)
-ann_colors = list(ProtocolNum = my_colors)
-
-p <- pheatmap(bc, annotation_col = my_sample_col, annotation_colors = ann_colors)
