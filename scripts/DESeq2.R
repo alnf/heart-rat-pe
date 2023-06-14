@@ -137,40 +137,39 @@ counts.dds.h <- counts(dds.h,normalized=TRUE)
 
 source("utils.R")
 
-region = "Ap"
+region = "LV"
+
+wrapDegs <- function(dds, t2g, contrast, region, sval.filter=TRUE) {
+  contrast[2:3] <- paste(region, contrast[2:3], sep="_")
+  fname = paste(contrast[2:3], collapse="_")
+  fname_short = paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep="")
+  fname = paste("../degs/WT/", region, "/degs_", fname, ".tsv", sep="")
+  getDEGs(dds.h, contrast, t2g, sval.filter=sval.filter, filename=fname, filename_short=fname_short)  
+}
+
 contrast = c("Group","PEd21","SDd21")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","PEpp","SDpp")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","SDd21","np")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","SDpp","np")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-#For RV and Ap
-#getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5, sval.filter=FALSE)
-getDEGs(dds.h, contrast, t2g, lFCvis = 1, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region, sval.filter=FALSE)
 
 contrast = c("Group","PEd21","np")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","PEpp","np")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","SDd21","SDpp")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 contrast = c("Group","PEd21","PEpp")
-contrast[2:3] <- paste(region, contrast[2:3], sep="_")
-getDEGs(dds.h, contrast, t2g, width=7, height=5)
+wrapDegs(dds.h, t2g, contrast, region)
 
 ### All genes
 types = c("_short.tsv", ".tsv")
@@ -227,9 +226,8 @@ genePlot(dds.h, gene, "Group", groups, my_comparisons, fname, title)
 
 ### Region heatmap
 source("utils.R")
-regionPlot(dds.h, region, all_genes$ens_gene)
-#regionPlot(dds.h, region, rownames(dds.h))
-
+filename = paste("../plots/WT/", region, "/heatmap_vst_cor_", region, ".png", sep="")
+regionPlot(dds.h, region, all_genes$ens_gene, filename)
 
 ### Venn between regions
 comparisons <- c("PEd21", "SDd21")
