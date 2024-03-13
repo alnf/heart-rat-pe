@@ -38,43 +38,49 @@ getDEGs <- function(dds, contrast, t2g, lFC = 1, sval.filter = TRUE, filename, f
   write.table(resTable, filename_short, sep="\t", row.names = F)
 }
 
-makeHeatmap <- function() {
-  ind = which(dds$Group %in% contrast[2:3])
+makeHeatmap <- function(dds, contrast, degs, lFC, filename, region) {
+  groups <- paste(region, contrast, sep="_")
+  ind = which(dds$Group %in% groups)
+  
   exprs <- assay(vst(dds[,ind], blind=TRUE))
   colnames(exprs) <- dds$SampleNumber[ind]
+  degs.filtered <- degs %>% filter(abs(log2FoldChange) > lFC)
   
-  if (sval.filter) {
-    resTable <- resTable %>% filter(svalue <= 0.005)
-  }
-  resTable <- resTable %>% filter(!str_detect(description, 'ribosomal RNA'))
-  resTable <- resTable %>% filter(symbol!="" | msymbol!="") 
-  resTable$symbol[which(resTable$symbol=="")] <- resTable$msymbol[which(resTable$symbol=="")]
+  exprs.short <- exprs[degs.filtered$ens_gene,]
+  rownames(exprs.short) <- degs.filtered$symbol
   
-  mean <- rowMeans(resTable[,6:7])
-  if (length(which(mean<20))>0) {
-    resTable <- resTable[-which(mean<20),]
-  }
-  resTable <- resTable %>% filter(abs(log2FoldChange) > lFC)
-  write.table(resTable, paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep=""), sep="\t", row.names = F)
-  
-  resTable <- resTable %>% filter(abs(log2FoldChange) > lFCvis)
-  exprs.short <- exprs[resTable$ens_gene,]
-  cor <- cor(exprs.short)
   color = hue_pal()(2)
   anno.df <- as.data.frame(colData(dds[,ind]))
   rownames(anno.df) <- anno.df$SampleNumber
+  anno.df$Group <- factor(anno.df$Group, levels=groups)
+  print(anno.df$Group)
+  
   names(color) <- levels(factor(anno.df$Group))
   annoCol <- list(Group = color)
-  pheatmap(cor, annotation = anno.df[,c("Group"), drop=F], annotation_colors = annoCol,
-           filename = paste("../plots/WT/", region, "/heatmap_vst_cor_", fname, ".png", sep=""),
-           width = width, height = height)    
-  rownames(exprs.short) <- resTable$symbol
+
   pheatmap(exprs.short, annotation = anno.df[,c("Group"), drop=F], annotation_colors = annoCol,
-           filename = paste("../plots/WT/", region, "/heatmap_vst_", fname, ".png", sep=""),
-           scale = "row", width = 8, height = 11,
-           main = paste(contrast[2], "vs", contrast[3], ": n =", nrow(resTable)))
+           filename = filename, scale = "row", width = 8, height = 11,
+           main = paste(contrast[1], "vs", contrast[2], ": n =", nrow(degs.filtered)))
     
 }
+
+makeHeatmapFC <- function(fc, genes, contrast, filename, scale = "row") {
+  rownames(fc) <- genes$symbol
+
+  color = hue_pal()(4)
+  anno.df <- data.frame(region = colnames(fc))
+  rownames(anno.df) <- anno.df$region
+  anno.df$region <- factor(anno.df$region, levels=colnames(fc))
+  names(color) <- levels(factor(anno.df$region))
+  annoCol <- list(region = color)
+  
+  
+  pheatmap(fc, annotation = anno.df, annotation_colors = annoCol,
+           filename = filename, scale = scale, width = 8, height = 11,
+           main = paste(contrast[1], "vs", contrast[2], " all regions: n =", nrow(fc)))
+  
+}
+
 
 
 makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02){
@@ -89,7 +95,7 @@ makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02){
     # Output features
     imagetype="png" ,
     height = 480 , 
-    width = 480 , 
+    width = 520 , 
     resolution = 300,
     compression = "lzw",
     margin = 0.05, 
@@ -128,7 +134,52 @@ genePlot <- function(dds, gene, intgroup, groups, comparisons, filename, title){
   d$count <- log2(d$count)
   ggboxplot(data=d, x="Group", y="count", color="Group", palette = "jco", add = "jitter", title = title) +
     stat_compare_means(method = "t.test", comparisons = comparisons)
-  ggsave(filename, width = 7, height = 5)
+  ggsave(filename, width = 7, height = 5, dpi=100)
+}
+
+genePlotRegionsBar <- function(dds, gene, intgroup, comparisons, filename, title){
+  d <- plotCounts(dds, gene=which(rownames(dds)==gene), intgroup=intgroup, 
+                  returnData=TRUE, normalized = TRUE, transform = TRUE)
+  
+  d$count <- log2(d$count)
+  d$Region <- factor(sapply(strsplit(as.character(d$Group),"_"), `[`, 1))
+  d$Pheno <- factor(sapply(strsplit(as.character(d$Group),"_"), `[`, 2))
+  
+  ggboxplot(data=d, x="Pheno", y="count", color="Pheno", palette = "jco", add = "jitter", title = title) +
+    facet_wrap(~Region, nrow = 2, ncol = 2) +
+    stat_compare_means(method = "t.test", comparisons = comparisons) +
+    theme_bw()
+
+  ggsave(filename, width = 10, height = 7, dpi=110)
+}
+
+genePlotRegionsLine <- function(dds, gene, intgroup, comparisons, filename, title){
+  d <- plotCounts(dds, gene=which(rownames(dds)==gene), intgroup=intgroup, 
+                  returnData=TRUE, normalized = TRUE, transform = TRUE)
+  
+  d$count <- log2(d$count)
+  d$Region <- factor(sapply(strsplit(as.character(d$Group),"_"), `[`, 1))
+  d$Pheno <- factor(sapply(strsplit(as.character(d$Group),"_"), `[`, 2))
+  
+  ggboxplot(data=d, x="Pheno", y="count", color="Pheno", palette = "jco", add = "jitter", title = title) +
+    facet_wrap(~Region, nrow = 4) +
+    stat_compare_means(method = "t.test", comparisons = comparisons) +
+    theme_bw()
+  
+  d.sum <- d %>%
+    group_by(Region, Pheno) %>%
+    summarise(
+      sd = sd(count, na.rm = TRUE),
+      mcount = mean(count)
+    )
+  
+  ggplot(data=d.sum, aes(x=Pheno, y=mcount, group=Region, color=Region)) + 
+    geom_line() +
+    geom_point()+
+    geom_errorbar(aes(ymin=mcount-sd, ymax=mcount+sd), width=.2,
+                  position=position_dodge(0.2))  
+  
+  ggsave(filename, width = 8, height = 6, dpi=100)
 }
 
 
