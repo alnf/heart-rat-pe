@@ -39,92 +39,89 @@ head(counts)
 # PCA plots
 pca <- prcomp(t(log2(txi.kallisto$counts+0.5)))
 autoplot(pca, data = metadata, colour = 'Group')
-ggsave("../plots/PCA_all.png", width=7, height=4)
+ggsave("../plots/QC/PCA_all.png", width=7, height=4, dpi=200)
 
 ind <- grep("Auge", metadata$Group, invert=T)
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_no_auge.png", width=7, height=6)
+ggsave("../plots/QC/PCA_heart.png", width=7, height=5, dpi=180)
 
 ind <- which(!grepl("Auge", metadata$Group) & grepl("np", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_np_no_auge.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_np.png", width=5, height=3, dpi=200)
 
 ind <- which(!grepl("Auge", metadata$Group) & grepl("pp", metadata$Group) & grepl("SD", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_pp_SD_no_auge.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_SDpp.png", width=5, height=3, dpi=200)
 
 ind <- which(!grepl("Auge", metadata$Group) & grepl("d21", metadata$Group) & grepl("SD", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_d21_SD_no_auge.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_SDd21.png", width=5, height=3, dpi=200)
 
 ind <- which(!grepl("Auge", metadata$Group) & grepl("pp", metadata$Group) & grepl("PE", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_pp_PE_no_auge.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_PEpp.png", width=5, height=3, dpi=200)
 
 # Remove outlier
 ind <- ind[-which(ind==105)]
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_pp_PE_no_auge_no_outlier.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_PEpp_no_outlier.png", width=5, height=3, dpi=200)
 
 ind <- which(!grepl("Auge", metadata$Group) & grepl("d21", metadata$Group) & grepl("PE", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_d21_PE_no_auge.png", width=5, height=3)
+ggsave("../plots/QC/PCA_heart_PEd21.png", width=5, height=3, dpi=200)
 
 ind <- which(grepl("LV", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_LV.png", width=5, height=3)
+ggsave("../plots/QC/PCA_LV.png", width=5, height=3, dpi=200)
 
 ind <- which(grepl("RV", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_RV.png", width=5, height=3)
+ggsave("../plots/QC/PCA_RV.png", width=5, height=3, dpi=200)
 
 ind <- which(grepl("Ap", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_Ap.png", width=5, height=3)
+ggsave("../plots/QC/PCA_Ap.png", width=5, height=3, dpi=200)
 
 ind <- which(grepl("Sept", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_Sept.png", width=5, height=3)
+ggsave("../plots/QC/PCA_Sept.png", width=5, height=3, dpi=200)
 
 ind <- which(grepl("Auge", metadata$Group))
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_Auge.png", width=5, height=3)
+ggsave("../plots/PCA_Auge.png", width=5, height=3, dpi=200)
 
 ind <- ind[-which(ind==150)]
 pca <- prcomp(t(log2(txi.kallisto$counts[,ind]+0.5)))
 autoplot(pca, data = metadata[ind,], colour = 'Group')
-ggsave("../plots/PCA_Auge_no_outlier.png", width=5, height=3)
+ggsave("../plots/QC/PCA_Auge_no_outlier.png", width=5, height=3, dpi=200)
 autoplot(pca, data = metadata[ind,], colour = 'Group', x=2, y=3)
-ggsave("../plots/PCA_Auge_no_outlier_2_3.png", width=5, height=3)
+ggsave("../plots/QC/PCA_Auge_no_outlier_PC23.png", width=5, height=3, dpi=200)
 
 # Create DESeq object
 outliers = c(7, 105, 150)
 auge = c(141:175)
-nonauge = c(1:140)
+heart = c(1:140)
 
-auge.ind = c(outliers, auge)
-auge.ind <- auge.ind[-which(duplicated(auge.ind))]
-heart.ind = c(outliers, nonauge)
-heart.ind <- heart.ind[-which(duplicated(heart.ind))]
+auge.ind = which(!(auge %in% outliers))
+heart.ind <- which(!(heart %in% outliers))
 
 dds <- DESeqDataSetFromTximport(txi.kallisto, metadata, ~ 0 + Group)
-#dds.back <- dds
 
 ######### Heart analysis
-dds.h <- dds[, -which(dds$SampleNumber %in% auge.ind)]
-metadata.h <- metadata[-auge.ind,]
+dds.h <- dds[, which(dds$SampleNumber %in% heart.ind)]
+metadata.h <- metadata[heart.ind,]
 metadata.h$Region <- factor(sapply(strsplit(metadata.h$Group,"_"), `[`, 1))
 metadata.h$Pheno <- factor(sapply(strsplit(metadata.h$Group,"_"), `[`, 2))
 
@@ -143,15 +140,13 @@ lcounts <- counts.dds.h
 colnames(lcounts) <- rownames(metadata.h)
 lcounts <- log2(lcounts+1)
 
-source("utils.R")
-
 region = "LV"
 
 wrapDegs <- function(dds, t2g, contrast, region, sval.filter=TRUE) {
   contrast[2:3] <- paste(region, contrast[2:3], sep="_")
   fname = paste(contrast[2:3], collapse="_")
-  fname_short = paste("../degs/WT/", region, "/degs_", fname, "_short.tsv", sep="")
-  fname = paste("../degs/WT/", region, "/degs_", fname, ".tsv", sep="")
+  fname_short = paste("../degs/", region, "/degs_", fname, "_short.tsv", sep="")
+  fname = paste("../degs/", region, "/degs_", fname, ".tsv", sep="")
   getDEGs(dds.h, contrast, t2g, sval.filter=sval.filter, filename=fname, filename_short=fname_short)  
 }
 
@@ -237,9 +232,10 @@ source("utils.R")
 region = "LV"
 groups <- dds.h$Group[grepl(region, dds.h$Group)]
 gene = ""
+
 title = unique(t2g$symbol[which(t2g$ens_gene==gene)])
 my_comparisons <- list(c("LV_PEd21", "LV_SDd21"), c("LV_PEpp", "LV_SDpp"))
-fname = paste("../plots/WT/", region, "/gene_", title, ".png", sep="")
+fname = paste("../plots/genes/gene_", title, ".png", sep="")
 genePlot(dds.h, gene, "Group", groups, my_comparisons, fname, title)
 
 ### Region heatmap

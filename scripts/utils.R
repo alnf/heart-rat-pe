@@ -200,3 +200,19 @@ regionPlot <- function(dds, region, ens_genes, filename, width=10, height=7){
            main = paste(region, ", ngenes=", length(ens_genes), sep=""))    
 }
 
+MAplot <- function(resDegs, mean_limit, fc_limit, nudge){
+  ggplot(degs, aes(x=log2(baseMean+1), y=log2FoldChange, color=degs, label=hsymbol)) +
+    geom_point() +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 7)) +
+    geom_text_repel(data          = subset(degs, (log2(baseMean+1) > mean_limit) & !is.na(degs) & abs(log2FoldChange) > fc_limit),
+                    nudge_y       = nudge,
+                    nudge_x       = nudge,
+                    size          = 4,
+                    box.padding   = 0.5,
+                    point.padding = 0.5,
+                    force         = 10,
+                    segment.size  = 0.2,
+                    segment.color = "grey50",
+                    direction     = "both") +
+    geom_hline(yintercept=0, color = "gray", size=1)  
+}

@@ -3,6 +3,7 @@
 config.yaml
 metadata/
 degs/
+degs.old/
 plots/
 docs/
 *RData
