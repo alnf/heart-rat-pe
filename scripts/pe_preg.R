@@ -1,7 +1,10 @@
-library(pheatmap)
 library(CEMiTool)
 library(CeTF)
 library(dplyr)
+library(ComplexHeatmap)
+library(ggplot2)
+library(viridis)
+library(ggrepel)
 
 remove_geom <- function(ggplot2_object, geom_type) {
   # Delete layers that match the requested type.
@@ -18,62 +21,187 @@ remove_geom <- function(ggplot2_object, geom_type) {
   ggplot2_object
 }
 
+clr <- read.table("../metadata/pe_colors.tsv", sep="\t", check.names = F, header = T, comment.char = "")
+colors <- clr$color
+names(colors) <- clr$variable
+annoCol <- list(Group = colors)
+
 metadata.left <- metadata.h[which(metadata.h$Region == "LV"), ]
 metadata.left <- metadata.left[-which(metadata.left$Pheno == "np"), ]
 
 t2gh <- biomaRt::getBM(attributes = c("ensembl_gene_id","hsapiens_homolog_associated_gene_name"), mart = ensembl)
 t2gh <- dplyr::rename(t2gh, ens_gene = ensembl_gene_id, hsymbol = hsapiens_homolog_associated_gene_name)
 
+lcounts <- as.data.frame(lcounts)
+agt <- t2gh[which(t2gh$hsymbol == "AGT"),]
+lcounts <- lcounts[-which(rownames(lcounts)==agt$ens_gene),]
+tpm_abd <- tpm_abd[-which(rownames(tpm_abd)==agt$ens_gene),]
+
 #LV: PEpp vs SDpp
-lfc = 0.58
+lfc = 1
 
 pp <- read.table("../degs/LV/degs_LV_PEpp_LV_SDpp.tsv", sep="\t", header = T, stringsAsFactors = F)
+pp <- pp[-which(pp$ens_gene==agt$ens_gene),]
 pp <- pp[which(pp$padj<0.05),]
 pp <- pp[which(abs(pp$log2FoldChange)>lfc),]
 pp <- merge(pp, t2gh, by="ens_gene")
 pp <- pp[-which(pp$hsymbol==""),]
+pp <- pp[-which(pp$symbol==""),]
 
 #LV: PEd21 vs SDd21
-lfc = 0.58
+lfc = 1
 
 d21 <- read.table("../degs/LV/degs_LV_PEd21_LV_SDd21.tsv", sep="\t", header = T, stringsAsFactors = F)
+d21 <- d21[-which(d21$ens_gene==agt$ens_gene),]
 d21 <- d21[which(d21$padj<0.05),]
 d21 <- d21[which(abs(d21$log2FoldChange)>lfc),]
 d21 <- merge(d21, t2gh, by="ens_gene")
 d21 <- d21[-which(d21$hsymbol==""),]
+d21 <- d21[-which(d21$symbol==""),]
 
-#Heatmap 
+#Heatmap: all samples
 
-lcounts <- as.data.frame(lcounts) 
-m <- lcounts[all_genes_final_strict, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+m <- lcounts[all_genes_final_strict$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
 m$ens_gene <- rownames(m)
 m <- merge(m, t2gh, by="ens_gene")
 m <- m[!duplicated(m$hsymbol),]
 rownames(m) <- m$hsymbol
-m <- as.matrix(m[,2:16])
+m <- as.matrix(m[,2:(ncol(m)-1)])
+c <- cor(m)
 
-color = hue_pal()(length(levels(factor(metadata.left$Pheno))))
-names(color) <- levels(factor(metadata.left$Pheno))
-annoCol <- list(Pheno = color)
+cha = HeatmapAnnotation(Group = as.factor(metadata.left[,c("PhenoNames")]), col=annoCol, show_legend = F, show_annotation_name = F)
+rha = rowAnnotation(Group = as.factor(metadata.left[,c("PhenoNames")]), col=annoCol, show_legend = F, show_annotation_name = F)
 
-pheatmap(m, annotation = metadata.left[,c("Pheno"), drop=F], annotation_colors = annoCol,
-         filename = "../plots/heatmap_545_genes.png", width = 10, height = 7, scale = "row",
-         show_rownames = F, show_colnames = F, treeheight_row = 0) 
+pals = hcl.pals("diverging")
+pals
+colors = hcl.colors(10, palette = "Purple-Green")
+ht = Heatmap(c, show_row_names = T, show_row_dend = F, show_column_names = T,
+        top_annotation = cha, right_annotation = rha, name = "corr", column_split = metadata.left[,c("PhenoNames")],
+        row_names_gp = gpar(fontsize = 14),
+        column_names_gp = gpar(fontsize = 14),
+        column_dend_height=unit(10, "mm"),
+        heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14))
+        )
+png("../plots/pe_preg/heatmap_samples.png", width = 10.5, height = 9, units="in", res=80)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
 
-ha = HeatmapAnnotation(Pheno = metadata.left[,c("Pheno")])
-Heatmap(t(scale(t(m))), col=viridis(100, option="A"), show_row_names = F, show_row_dend = F, show_column_names = F,
-        top_annotation = ha)
+#Heatmap: main genes
+
+m <- lcounts[pp[which(abs(pp$log2FoldChange)>1),]$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+all_genes_final_strict <- all_genes_final_strict[-which(all_genes_final_strict$ens_gene==agt$ens_gene),,drop=F]
+m <- lcounts[all_genes_final_strict$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+all_genes_WT_PE <- all_genes_WT_PE[-which(all_genes_WT_PE$ens_gene==agt$ens_gene),,drop=F]
+m <- lcounts[all_genes_WT_PE$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+m$ens_gene <- rownames(m)
+m <- merge(m, t2gh, by="ens_gene")
+m <- m[!duplicated(m$hsymbol),]
+rownames(m) <- m$hsymbol
+m <- m[-which(m$hsymbol=="KLRC2"),]
+m <- m[-which(m$hsymbol=="KLRC3"),]
+m <- m[-which(m$hsymbol=="KLRC4"),]
+m <- as.matrix(m[,2:(ncol(m)-1)])
+
+m <- merge(m, t2g, by="ens_gene")
+m <- m[!duplicated(m$symbol),]
+m <- m[which(m$symbol!=""),]
+rownames(m) <- m$symbol
+m <- m[-grep("ribosomal RNA", m$description),]
+m <- as.matrix(m[,2:(ncol(m)-4)])
 
 
-## ssGSEA
+m <- m[,match(metadata.left$SampleNumber, colnames(m))]
+ha = HeatmapAnnotation(Group = metadata.left[,c("PhenoNames")], col=annoCol, show_legend = F, show_annotation_name = F)
 
+d21 <- d21[which(d21$ens_gene %in% m$ens_gene),]
+m <- m[!duplicated(m$ens_gene),]
+d21 <- d21[order(d21$log2FoldChange, decreasing = T),]
+m <- m[match(d21$symbol, rownames(m)),]
+
+
+colors = hcl.colors(30, palette = "Purple-Green")
+ht = Heatmap(t(scale(t(m))), show_row_names = T, show_row_dend = F, show_column_names = T, cluster_columns = F,
+             top_annotation = ha, name = "expr", column_split = cspl)
+ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = T, cluster_rows = F,
+             top_annotation = ha, name = "expr", column_split = cspl)
+
+png("../plots/pe_preg/heatmap_main_genes.png", width = 10.5, height = 19, units="in", res=80)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+#Heatmap: all 600 genes
+
+m <- lcounts[all_genes_final_strict$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+m$ens_gene <- rownames(m)
+m <- merge(m, t2gh, by="ens_gene")
+m <- m[!duplicated(m$hsymbol),]
+rownames(m) <- m$hsymbol
+m <- m[m$hsymbol!="",]
+m <- as.matrix(m[,2:(ncol(m)-1)])
+
+mod_cols = c(M1="#820D3F",M2="#E64A00",M3="#3B3EDE",M4="#871C9A",M5="#14C7BA", Not.Correlated="gray")
+
+genes <- cem@module[which(cem@module$modules=="M2"),]$genes
+m2 <- rep(NA, nrow(m))
+names(m2) <- rownames(m)
+m2[which(names(m2) %in% genes)] <- mod_cols[["M2"]]
+genes <- cem@module[which(cem@module$modules=="M3"),]$genes
+m3 <- rep(NA, nrow(m))
+names(m3) <- rownames(m)
+m3[which(names(m3) %in% genes)] <- mod_cols[["M3"]]
+genes <- cem@module[which(cem@module$modules=="M4"),]$genes
+m4 <- rep(NA, nrow(m))
+names(m4) <- rownames(m)
+m4[which(names(m4) %in% genes)] <- mod_cols[["M4"]]
+genes <- cem@module[which(cem@module$modules=="M5"),]$genes
+m5 <- rep(NA, nrow(m))
+names(m5) <- rownames(m)
+m5[which(names(m5) %in% genes)] <- mod_cols[["M5"]]
+genes <- cem@module[which(cem@module$modules=="M1"),]$genes
+m1 <- rep(NA, nrow(m))
+names(m1) <- rownames(m)
+m1[which(names(m1) %in% genes)] <- mod_cols[["M1"]]
+    
+rspl <- data.frame(modules = cem@module$modules)
+rspl$hsymbol <- rownames(m)
+rspl$modules[which(rspl$modules=="Not.Correlated")] <- "NC"
+rspl$modules <- factor(rspl$modules, levels = c("M1", "M2", "M5", "M3", "M4", "NC"))
+#rspl <- rspl[order(rspl$modules),]
+#m <- m[match(rspl$hsymbol, rownames(m)),]
+
+annoRow <- list(M1 = m1, M2 = m2, M3 = m3, M4 = m4, M5 = m5)
+anno_df <- data.frame(M1 = rownames(m), M2 = rownames(m), M3 = rownames(m), M4 = rownames(m), M5 = rownames(m))
+rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
+
+metadata.left$PhenoNames <- factor(metadata.left$PhenoNames, levels = c("WTpreg", "WTpost", "PEpreg", "PEpost"))
+metadata.left <- metadata.left[order(metadata.left$PhenoNames),]
+m <- m[,match(metadata.left$SampleNumber, colnames(m))]
+
+cspl <- metadata.left$PhenoNames
+
+cha = HeatmapAnnotation(Group = metadata.left[,c("PhenoNames")], col=annoCol, show_legend = F, show_annotation_name = F)
+
+colors = hcl.colors(30, palette = "Purple-Green")
+ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = F,
+             top_annotation = cha, right_annotation = rha, name = "expr",
+             column_split = cspl, row_split = rspl$modules, cluster_row_slices = F,
+             row_names_gp = gpar(fontsize = 14),
+             column_names_gp = gpar(fontsize = 14),
+             column_dend_height=unit(10, "mm"),
+             heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14))
+             )
+png("../plots/pe_preg/heatmap_all_genes.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
 
 ## MA plots
-pp <- pp[which(abs(pp$log2FoldChange)>1),]
+imp <- pp[which(abs(pp$log2FoldChange)>1),]
 
 degs <- read.table("../degs/LV/degs_LV_PEpp_LV_SDpp.tsv", sep="\t", header = T, stringsAsFactors = F)
-degs <- merge(degs, pp[c("ens_gene", "hsymbol")], by="ens_gene", all.x=T)
-
+degs <- merge(degs, imp[c("ens_gene", "hsymbol")], by="ens_gene", all.x=T)
 degs <- degs[which(!is.na(degs$log2FoldChange)),]
 
 degs$degs <- NA
@@ -82,10 +210,10 @@ degs$degs[which(degs$log2FoldChange<0)] <- "down"
 degs$degs[which(is.na(degs$hsymbol))] <- NA
 degs$degs <- factor(degs$degs, levels = c("up", "down"))
 
-MAplot(degs, 7.5, 1, 0.5)
+MAplot(degs, 7.5, 1, 0.5, "PEpost vs WTpost, logFC>1, ngenes = 139")
+ggsave("../plots/pe_preg/ma_pp.png", width = 10.5, height = 6, dpi = 80)
 
-
-d21 <- d21[which(abs(d21$log2FoldChange)>1),]
+imp <- d21[which(abs(d21$log2FoldChange)>1),]
 
 degs <- read.table("../degs/LV/degs_LV_PEd21_LV_SDd21.tsv", sep="\t", header = T, stringsAsFactors = F)
 degs <- merge(degs, d21[c("ens_gene", "hsymbol")], by="ens_gene", all.x=T)
@@ -99,7 +227,12 @@ degs$degs[which(degs$log2FoldChange<0)] <- "down"
 degs$degs[which(is.na(degs$hsymbol))] <- NA
 degs$degs <- factor(degs$degs, levels = c("up", "down"))
 
-MAplot(degs, 10, 1, 0.5)
+MAplot(degs, 10, 1, 0.5, "PEpreg vs WTpreg, logFC>1, ngenes = 510")
+ggsave("../plots/pe_preg/ma_d21.png", width = 10.5, height = 6, dpi = 80)
+
+
+## ssGSEA
+
 
 # Line plots
 
@@ -166,9 +299,13 @@ ggplot(data=lines, aes(x=Pheno, y=value, group=genes, color=inf_res)) +
 
 
 # CEMiTool
-metadata.left <- metadata.h[which(metadata.h$Region == "LV"), ]
-metadata.left <- metadata.left[-which(metadata.left$PhenoNames == "WTnp"), ]
+m <- lcounts[all_genes_final$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+m <- lcounts[all_genes_final_strict$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
 m <- lcounts[, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+all_genes_WT_PE <- all_genes_WT_PE[-which(all_genes_WT_PE$ens_gene==agt$ens_gene),,drop=F]
+m <- lcounts[all_genes_WT_PE$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
 m <- as.data.frame(m)
 m$ens_gene <- rownames(m)
 m <- merge(m, t2gh, by="ens_gene")
@@ -186,31 +323,46 @@ unregister_dopar <- function() {
   rm(list=ls(name=env), pos=env)
 }
 unregister_dopar()
-cem <- cemitool(as.data.frame(m), anno_data, filter = T)
-
-
+cem <- cemitool(as.data.frame(m), anno_data, filter = F, filter_pval = 0.1,
+                force_beta = T, apply_vst = F, rank_method = "median",
+                gsea_min_size = 10
+                )
 cem
-diagnostic_report(cem, force = T)
-generate_report(cem, force = T)
+cem@enrichment_plot
 
 gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
-cem <- mod_ora(cem, gmt_in)
-cem <- plot_ora(cem)
-plots <- show_plot(cem, "ora")
-plots[1]
-plots[3]
-plots[5]
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.kegg_legacy.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.biocarta.v2023.2.Hs.symbols.gmt")
+
 
 gmt_fname <- system.file("extdata", "pathways.gmt", package = "CEMiTool")
 gmt_in <- read_gmt(gmt_fname)
+
 cem <- mod_ora(cem, gmt_in)
-cem <- plot_ora(cem)
+mod_colors(cem) <- mod_cols
+cem <- plot_ora(cem, pv_cut=0.05)
 plots <- show_plot(cem, "ora")
+
+ora_bp <- cem@ora[which(cem@ora$Module=="M2"),]
+
 plots[1]
+ggsave("../plots/pe_preg/m1_enrichplot.png", width = 6, height = 5, dpi = 100)
 plots[2]
+ggsave("../plots/pe_preg/m2_enrichplot_bp.png", width = 7, height = 5, dpi = 100)
 plots[3]
+ggsave("../plots/pe_preg/m3_enrichplot.png", width = 6, height = 5, dpi = 100)
 plots[4]
+ggsave("../plots/pe_preg/m4_enrichplot.png", width = 6, height = 5, dpi = 100)
 plots[5]
+ggsave("../plots/pe_preg/m5_enrichplot.png", width = 6, height = 5, dpi = 100)
+
+epl <- cem@enrichment_plot$enrichment_plot
+epl + theme(axis.text.y = element_text(colour = mod_cols[c(1,3,4,2,5)], size=14, face = "bold"),
+            axis.text.x = element_text(colour = annoCol$Group[c(4,3,2,1)], size=14, face = "bold"),
+            axis.title = element_text(size=13)) +
+      labs(x = "Group")
+ggsave("../plots/pe_preg/main_enrichplot.png", width = 9, height = 6, dpi = 100)
 
 int_fname <- system.file("extdata", "interactions.tsv", package = "CEMiTool")
 int_df <- read.delim(int_fname)
@@ -218,14 +370,37 @@ int_df$gene1symbol <- toupper(int_df$gene1symbol)
 int_df$gene2symbol <- toupper(int_df$gene2symbol)
 head(int_df)
 interactions_data(cem) <- int_df # add interactions
-cem <- plot_interactions(cem, n=20) # generate plot
+cem <- plot_interactions(cem, n=10) # generate plot
 plots <- show_plot(cem, "interaction") # view the plot for the first module
-plots[3]
-generate_report(cem, force = T)
+plots[1]$M1 + theme(title = element_blank())
+ggsave("../plots/pe_preg/m1_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[2]$M2 + theme(title = element_blank())
+ggsave("../plots/pe_preg/m2_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[3]$M3 + theme(title = element_blank())
+ggsave("../plots/pe_preg/m3_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[4]$M4 + theme(title = element_blank())
+ggsave("../plots/pe_preg/m4_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[5]$M5 + theme(title = element_blank())
+ggsave("../plots/pe_preg/m5_interactionplot.png", width = 7, height = 5, dpi = 80)
 
-idx <-  which(cem@module[which(cem@module$modules=="M3"),]$genes %in% pp$hsymbol)
-cem@module[which(cem@module$modules=="M3"),]$genes[idx]
 
+#generate_report(cem, force = T, directory="../degs/CEMi/degs_hallmark", title = "degs_hallmark")
+generate_report(cem, force = T, directory="../degs/CEMi/degs_bp", title = "degs_bp")
+
+idx <-  which(cem@module[which(cem@module$modules=="M5"),]$genes %in% pp$hsymbol)
+m2g <- cem@module[which(cem@module$modules=="M2"),]$genes
+write.table(m2g, "../degs/module2.tsv", sep="\t", row.names = F)
+
+# Module heatmap
+
+genes <- cem@module[which(cem@module$modules=="M5"),]$genes
+mat <- m[genes,]
+
+ha = HeatmapAnnotation(Group = metadata.left[,c("PhenoNames")], col=annoCol)
+colors = hcl.colors(30, palette = "Purple-Green")
+ht = Heatmap(t(scale(t(mat))), show_row_names = T, col = colors, show_row_dend = F, show_column_names = T,
+             top_annotation = ha, name = "expr",)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
 
 # AGT
 
@@ -240,3 +415,110 @@ m <- as.matrix(m[,2:(ncol(m)-1)])
 
 AGT <- m[which(rownames(m)=="AGT"),]
 AGT
+
+
+enrichPlot()
+cem@enrichment_plot$enrichment_plot$theme$text$size = 13
+cem@enrichment_plot
+
+cem@ora$geneID[which(cem@ora$Module=="M2")]
+
+# performing getEnrich analysis
+pp <- pp[-which(pp$hsymbol=="KLRC2"),]
+pp <- pp[-which(pp$hsymbol=="KLRC3"),]
+pp <- pp[-which(pp$hsymbol=="KLRC4"),]
+pp <- pp[-which(duplicated(pp$hsymbol)),]
+
+pp_cond <- getEnrich(genes = pp$symbol, organismDB = org.Rn.eg.db, keyType = 'SYMBOL', 
+                   ont = 'BP', fdrMethod = "BH", fdrThr = 0.05, minGSSize = 10, 
+                   maxGSSize = 500)
+
+d21_cond <- getEnrich(genes = d21$symbol, organismDB = org.Rn.eg.db, keyType = 'SYMBOL', 
+                     ont = 'BP', fdrMethod = "BH", fdrThr = 0.05, minGSSize = 10, 
+                     maxGSSize = 500)
+
+pp_cond_res <- pp_cond$results
+pp_cond_res <- pp_cond_res[pp_cond_res$p.adjust<=0.05,]
+
+
+p <- enrichPlot(res = pp_cond$results, showCategory = 10,
+                type = "circle") +
+                theme(axis.text.x = element_text(size=12))
+p
+
+enrichPlot(res = d21_cond$results, showCategory = 10,
+           type = "circle") +
+           theme(axis.text.x = element_text(size=12))
+
+d21_cond_res <- d21_cond$results
+d21_cond_res <- d21_cond_res[d21_cond_res$p.adjust<=0.05,]
+
+
+### Venn diagram: SD vs PE
+region = "LV"
+names = c("PEd21_SDd21" , "PEpp_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/pe_preg/venn_", fname, ".png", sep="")
+names = c("PEpreg_SDpreg", "PEpost_SDpost")
+makeVenn(2, list(d21$hsymbol, pp$hsymbol), names, "DEGs in pregnancy and postpartum",
+         fname, c("lightgreen", "pink"))
+
+
+duplicated(intersect(d21$hsymbol, pp$hsymbol))
+
+
+library(ggVennDiagram)
+
+# List of items
+x <- list(A = 1:5, B = 2:7)
+
+# 2D Venn diagram
+ggVennDiagram(list(d21$ens_gene, pp$ens_gene))
+
+duplicated(pp$hsymbol)
+
+
+# CEM for pp only
+
+anno_data <- metadata.left[,c("SampleNumber", "PhenoNames")]
+anno_data$SampleNumber <- as.character(anno_data$SampleNumber)
+colnames(anno_data) <- c("SampleName", "Class")
+unregister_dopar <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+unregister_dopar()
+
+ppp <- pp[which(pp$hsymbol %in% rownames(m)),]
+mm <- m[ppp[which(ppp$log2FoldChange>0),]$hsymbol,]
+kk <- m[ppp[which(ppp$log2FoldChange<0),]$hsymbol,]
+
+
+
+cem <- cemitool(as.data.frame(kk), anno_data, filter = F, filter_pval = 0.1,
+                force_beta = T, apply_vst = F, rank_method = "median",
+                gsea_min_size = 10
+)
+cem
+cem@enrichment_plot
+
+
+gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.kegg_legacy.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.biocarta.v2023.2.Hs.symbols.gmt")
+
+gmt_fname <- system.file("extdata", "pathways.gmt", package = "CEMiTool")
+gmt_in <- read_gmt(gmt_fname)
+
+cem <- mod_ora(cem, gmt_in)
+#mod_colors(cem) <- mod_cols
+cem <- plot_ora(cem, pv_cut=0.5)
+plots <- show_plot(cem, "ora")
+
+
+#cem@enrichment_plot
+plots[1]
+
+ora_selected <- cem@ora
+

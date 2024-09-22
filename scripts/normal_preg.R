@@ -32,6 +32,7 @@ ltEP <- ltEP[which(abs(ltEP$log2FoldChange)>lfc),]
 #ltEP <- read.table("../degs/WT/LV/degs_LV_SDpp_LV_np_short.tsv", sep="\t", header = T, stringsAsFactors = F)
 ltEP <- merge(ltEP, t2gh, by="ens_gene")
 ltEP <- ltEP[-which(ltEP$hsymbol==""),]
+#ltEP <- ltEP[-which(ltEP$ens_gene==agt$ens_gene),]
 
 #LV: SDd21 vs np
 
@@ -41,6 +42,7 @@ RDP <- RDP[which(abs(RDP$log2FoldChange)>lfc),]
 #RDP <- read.table("../degs/WT/LV/degs_LV_SDd21_LV_np_short.tsv", sep="\t", header = T, stringsAsFactors = F)
 RDP <- merge(RDP, t2gh, by="ens_gene")
 RDP <- RDP[-which(RDP$hsymbol==""),]
+#RDP <- RDP[-which(RDP$ens_gene==agt$ens_gene),]
 
 #LV: SDd21 vs SDpp
 
@@ -50,6 +52,9 @@ RAP <- RAP[which(abs(RAP$log2FoldChange)>lfc),]
 #RAP <- read.table("../degs/WT/LV/degs_LV_SDd21_LV_SDpp_short.tsv", sep="\t", header = T, stringsAsFactors = F)
 RAP <- merge(RAP, t2gh, by="ens_gene")
 RAP <- RAP[-which(RAP$hsymbol==""),]
+#RAP <- RAP[-which(RAP$ens_gene==agt$ens_gene),]
+
+
 RAP <- RAP[order(abs(RAP$log2FoldChange), decreasing = T),]
 RAP$logMean <- log(RAP$baseMean)
 RAP$rank <- abs(RAP$logMean*RAP$log2FoldChange)
@@ -62,7 +67,7 @@ all_genes <- unique(c(RDP$hsymbol, RAP$hsymbol, ltEP$hsymbol))
 fname = paste(c("RDP", "RAP", "ltEP"), collapse="_")
 title = paste(fname, ", ngenes=", length(all_genes), sep="")
 makeVenn(3, list(RDP$hsymbol, RAP$hsymbol, ltEP$hsymbol), c("RDP", "RAP", "ltEP"), title,
-         paste("../plots/venn_regions_lfc1_", fname, ".png", sep=""),
+         paste("../plots/normal_preg/venn_regions_lfc0.58_", fname, ".png", sep=""),
          brewer.pal(3, "Pastel2"), dist = -0.35)
 
 # Line plots
@@ -261,3 +266,169 @@ degs$degs[which(is.na(degs$hsymbol))] <- NA
 degs$degs <- factor(degs$degs, levels = c("up", "down"))
 
 MAplot(degs, 10, 1, 0.5)
+
+
+# CEMi
+
+all_genes <- unique(c(RDP$ens_gene, RAP$ens_gene, ltEP$ens_gene))
+m <- lcounts[all_genes, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+m <- as.data.frame(m)
+m$ens_gene <- rownames(m)
+m <- merge(m, t2gh, by="ens_gene")
+m <- m[!duplicated(m$hsymbol),]
+m <- m[m$hsymbol!="",]
+rownames(m) <- m$hsymbol
+m <- as.matrix(m[,2:(ncol(m)-1)])
+
+
+anno_data <- metadata.left[,c("SampleNumber", "PhenoNames")]
+anno_data$SampleNumber <- as.character(anno_data$SampleNumber)
+colnames(anno_data) <- c("SampleName", "Class")
+unregister_dopar <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+unregister_dopar()
+cem <- cemitool(as.data.frame(m), anno_data, filter = F, filter_pval = 0.1,
+                force_beta = T, apply_vst = F, rank_method = "median",
+                gsea_min_size = 10
+)
+cem
+cem@enrichment_plot
+
+gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.kegg_legacy.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.biocarta.v2023.2.Hs.symbols.gmt")
+
+
+gmt_fname <- system.file("extdata", "pathways.gmt", package = "CEMiTool")
+gmt_in <- read_gmt(gmt_fname)
+
+cem <- mod_ora(cem, gmt_in)
+mod_colors(cem) <- mod_cols
+cem <- plot_ora(cem, pv_cut=0.05)
+plots <- show_plot(cem, "ora")
+
+#ont_type = "default"
+#ont_type = "bp"
+#ont_type = "hallmark"
+#ont_type = "kegg"
+ont_type = "biocarta"
+
+plots[1]
+ggsave(paste("../plots/normal_preg/m1_enrichplot_", ont_type, ".png", sep=""), width = 6, height = 5, dpi = 100)
+plots[2]
+ggsave(paste("../plots/normal_preg/m2_enrichplot_", ont_type, ".png", sep=""), width = 7, height = 5, dpi = 100)
+plots[3]
+ggsave(paste("../plots/normal_preg/m3_enrichplot_", ont_type, ".png", sep=""), width = 6, height = 5, dpi = 100)
+plots[4]
+ggsave(paste("../plots/normal_preg/m4_enrichplot_", ont_type, ".png", sep=""), width = 6, height = 5, dpi = 100)
+plots[5]
+ggsave(paste("../plots/normal_preg/m5_enrichplot_", ont_type, ".png", sep=""), width = 6, height = 5, dpi = 100)
+
+
+annoColnp <- annoCol
+annoColnp$Group <- c("WTnp"="#719360", "WTpost"="#CCBB44", "WTpreg"="#4477AA")
+
+epl <- cem@enrichment_plot$enrichment_plot
+epl + theme(axis.text.y = element_text(colour = mod_cols[c(1,3,4,2,5)], size=14, face = "bold"),
+            axis.text.x = element_text(colour = annoColnp$Group[c(1,2,3)], size=14, face = "bold"),
+            axis.title = element_text(size=13)) +
+  labs(x = "Group")
+ggsave("../plots/normal_preg/main_enrichplot.png", width = 7, height = 5, dpi = 100)
+
+int_fname <- system.file("extdata", "interactions.tsv", package = "CEMiTool")
+int_df <- read.delim(int_fname)
+int_df$gene1symbol <- toupper(int_df$gene1symbol)
+int_df$gene2symbol <- toupper(int_df$gene2symbol)
+head(int_df)
+interactions_data(cem) <- int_df # add interactions
+cem <- plot_interactions(cem, n=10) # generate plot
+plots <- show_plot(cem, "interaction") # view the plot for the first module
+plots[1]$M1 + theme(title = element_blank())
+ggsave("../plots/normal_preg/m1_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[2]$M2 + theme(title = element_blank())
+ggsave("../plots/normal_preg/m2_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[3]$M3 + theme(title = element_blank())
+ggsave("../plots/normal_preg/m3_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[4]$M4 + theme(title = element_blank())
+ggsave("../plots/normal_preg/m4_interactionplot.png", width = 7, height = 5, dpi = 80)
+plots[5]$M5 + theme(title = element_blank())
+ggsave("../plots/normal_preg/m5_interactionplot.png", width = 7, height = 5, dpi = 80)
+
+
+# CEM Heatmap
+
+genes <- cem@module[which(cem@module$modules=="M2"),]$genes
+m2 <- rep(NA, nrow(m))
+names(m2) <- rownames(m)
+m2[which(names(m2) %in% genes)] <- mod_cols[["M2"]]
+
+genes <- cem@module[which(cem@module$modules=="M3"),]$genes
+m3 <- rep(NA, nrow(m))
+names(m3) <- rownames(m)
+m3[which(names(m3) %in% genes)] <- mod_cols[["M3"]]
+
+genes <- cem@module[which(cem@module$modules=="M4"),]$genes
+m4 <- rep(NA, nrow(m))
+names(m4) <- rownames(m)
+m4[which(names(m4) %in% genes)] <- mod_cols[["M4"]]
+
+genes <- cem@module[which(cem@module$modules=="M1"),]$genes
+m1 <- rep(NA, nrow(m))
+names(m1) <- rownames(m)
+m1[which(names(m1) %in% genes)] <- mod_cols[["M1"]]
+
+genes <- cem@module[which(cem@module$modules=="M5"),]$genes
+m5 <- rep(NA, nrow(m))
+names(m5) <- rownames(m)
+m5[which(names(m5) %in% genes)] <- mod_cols[["M5"]]
+
+genes <- ltEP$hsymbol
+ltEPanno <- rep(NA, nrow(m))
+names(ltEPanno) <- rownames(m)
+ltEPanno[which(names(ltEPanno) %in% genes)] <- "pink"
+
+genes <- RDP$hsymbol
+RDPanno <- rep(NA, nrow(m))
+names(RDPanno) <- rownames(m)
+RDPanno[which(names(RDPanno) %in% genes)] <- "lightblue"
+  
+genes <- RAP$hsymbol
+RAPanno <- rep(NA, nrow(m))
+names(RAPanno) <- rownames(m)
+RAPanno[which(names(RAPanno) %in% genes)] <- "lightgreen"
+  
+rspl <- data.frame(modules = cem@module$modules)
+rspl$hsymbol <- rownames(m)
+rspl$modules[which(rspl$modules=="Not.Correlated")] <- "NC"
+rspl$modules <- factor(rspl$modules, levels = c("M5", "M2", "M4", "M3", "M1", "NC"))
+
+annoRow <- list(M1 = m1, M2 = m2, M3 = m3, M4 = m4, M5 = m5, ltEP = ltEPanno, RDP = RDPanno, RAP = RAPanno)
+anno_df <- data.frame(M1 = rownames(m), M2 = rownames(m), M3 = rownames(m), M4 = rownames(m), M5 = rownames(m), ltEP = rownames(m), RDP = rownames(m), RAP = rownames(m))
+rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
+
+metadata.left$PhenoNames <- factor(metadata.left$PhenoNames, levels = c("WTnp", "WTpreg", "WTpost"))
+metadata.left <- metadata.left[order(metadata.left$PhenoNames),]
+m <- m[,match(metadata.left$SampleNumber, colnames(m))]
+
+cspl <- metadata.left$PhenoNames
+
+cha = HeatmapAnnotation(Group = metadata.left[,c("PhenoNames")], col=annoColnp, show_legend = F, show_annotation_name = F)
+
+colors = hcl.colors(30, palette = "Purple-Green")
+ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = F,
+             top_annotation = cha, right_annotation = rha, name = "expr",
+             column_split = cspl, row_split = rspl$modules, cluster_row_slices = F,
+             row_names_gp = gpar(fontsize = 14),
+             column_names_gp = gpar(fontsize = 14),
+             column_dend_height=unit(10, "mm"),
+             heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14))
+)
+
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+png("../plots/normal_preg/modules_heatmap.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()

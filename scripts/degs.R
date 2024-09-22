@@ -200,7 +200,7 @@ wrapDegs(dds.h, t2g, contrast, region)
 
 ### All genes
 types = c("_short.tsv", ".tsv")
-type = types[1]
+type = types[2]
 
 fname = paste(region, "PEd21", region, "SDd21", sep="_")
 PEd21_SDd21 <- read.table(paste("../degs/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
@@ -240,6 +240,23 @@ PEd21_SDd21 <- PEd21_SDd21[which(PEd21_SDd21$padj<0.05),]
 PEpp_SDpp <- PEpp_SDpp[which(PEpp_SDpp$padj<0.05),]
 PEd21_PEpp <- PEd21_PEpp[which(PEd21_PEpp$padj<0.05),]
 SDd21_SDpp <- SDd21_SDpp[which(SDd21_SDpp$padj<0.05),]
+
+PEd21_SDd21 <- PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),]
+PEpp_SDpp <- PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),]
+PEd21_PEpp <- PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),]
+SDd21_SDpp <- SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),]
+
 all_genes_final <- c()
 all_genes_final$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene, PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene))
 all_genes_final <- as.data.frame(all_genes_final)
+
+all_genes_WT_PE <- c()
+all_genes_WT_PE$ens_gene <- unique(c(PEpp_SDpp$ens_gene, PEd21_SDd21$ens_gene))
+all_genes_WT_PE <- as.data.frame(all_genes_WT_PE)
+
+
+
+
+
+
+

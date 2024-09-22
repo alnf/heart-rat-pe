@@ -200,19 +200,26 @@ regionPlot <- function(dds, region, ens_genes, filename, width=10, height=7){
            main = paste(region, ", ngenes=", length(ens_genes), sep=""))    
 }
 
-MAplot <- function(resDegs, mean_limit, fc_limit, nudge){
+MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
   ggplot(degs, aes(x=log2(baseMean+1), y=log2FoldChange, color=degs, label=hsymbol)) +
-    geom_point() +
+    geom_point(alpha=0.7) +
+    geom_hline(yintercept=0, color = "gray", size=1) +
     scale_y_continuous(breaks = scales::pretty_breaks(n = 7)) +
     geom_text_repel(data          = subset(degs, (log2(baseMean+1) > mean_limit) & !is.na(degs) & abs(log2FoldChange) > fc_limit),
                     nudge_y       = nudge,
                     nudge_x       = nudge,
-                    size          = 4,
+                    size          = 6,
                     box.padding   = 0.5,
                     point.padding = 0.5,
-                    force         = 10,
-                    segment.size  = 0.2,
+                    force         = 1,
                     segment.color = "grey50",
-                    direction     = "both") +
-    geom_hline(yintercept=0, color = "gray", size=1)  
+                    direction     = "both",
+                    max.overlaps = 20,
+                    show.legend = F) +
+    labs(title=title) +
+    theme(plot.title = element_text(vjust=-7, hjust=1, size=16),
+          axis.title = element_text(size=14),
+          legend.key.size = unit(1, 'cm'), #change legend key size
+          legend.title = element_text(size=14), #change legend title font size
+          legend.text = element_text(size=10))
 }

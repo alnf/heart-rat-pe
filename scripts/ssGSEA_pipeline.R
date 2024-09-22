@@ -47,7 +47,8 @@ runssGSEA <- function(metadata, abundance, t2gh, filename, path, threshold = 0.5
   #print(gsea_res)
   
   gsea_pval <- rowttests(gsea_res, factor(metadata.left$PhenoNames), tstatOnly = FALSE)
-  gsea_pval <- gsea_pval[which(gsea_pval$p.value<=0.05),]
+  gsea_pval <- gsea_pval[which(gsea_pval$p.value<=0.1),]
+  print(gsea_pval)
   gsea_pval <- gsea_pval[which(abs(gsea_pval$dm)>=threshold),]
   print(gsea_pval)
   
@@ -59,10 +60,10 @@ runssGSEA <- function(metadata, abundance, t2gh, filename, path, threshold = 0.5
 
 metadata.left <- metadata.h[which(grepl("SDd21",metadata.h$Pheno) | grepl("PEd21",metadata.h$Pheno)), ]
 metadata.left <- metadata.left[which(metadata.left$Region == "LV"), ]
-metadata.left <- metadata.left[-which(metadata.left$SampleNumber %in% c(13,18)),]
+#metadata.left <- metadata.left[-which(metadata.left$SampleNumber %in% c(13,18)),]
 filename = "d21"
 path = "../degs/ssGSEA/"
-runssGSEA(metadata.left, tpm_abd, t2gh, filename, path, threshold = 0.4, rerun=T)
+runssGSEA(metadata.left, tpm_abd, t2gh, filename, path, threshold = 0.4, rerun=F)
 
 metadata.left <- metadata.h[which(grepl("SDpp",metadata.h$Pheno) | grepl("PEpp",metadata.h$Pheno)), ]
 metadata.left <- metadata.left[which(metadata.left$Region == "LV"), ]
@@ -79,18 +80,18 @@ gct_file
 write_gct(gct_file, paste("../degs/ssGSEA/pp/signature_filtered/", "HALLMARK_INTERFERON_ALPHA_RESPONSE_n15x6.gct", sep=""))
 
 path = "../degs/ssGSEA/d21/signature_gct/"
-filename = "HALLMARK_INTERFERON_ALPHA_RESPONSE_n13x94.gct"
+filename = "HALLMARK_INTERFERON_ALPHA_RESPONSE_n15x94.gct"
 gct_file <- parse_gctx(paste(path, filename, sep=""))
 gct_file <- subset_gct(gct_file, rid = which(gct_file@rid %in% d21$hsymbol))
 gct_file
-write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_INTERFERON_ALPHA_RESPONSE_n13x13.gct", sep=""))
+write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_INTERFERON_ALPHA_RESPONSE_n15x14.gct", sep=""))
 
 path = "../degs/ssGSEA/d21/signature_gct/"
-filename = "HALLMARK_ANGIOGENESIS_n13x34.gct"
+filename = "HALLMARK_ANGIOGENESIS_n15x34.gct"
 gct_file <- parse_gctx(paste(path, filename, sep=""))
 gct_file <- subset_gct(gct_file, rid = which(gct_file@rid %in% d21$hsymbol))
 gct_file
-write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_ANGIOGENESIS_n13x12_f.gct", sep=""))
+write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_ANGIOGENESIS_n15x12.gct", sep=""))
 
 path = "../degs/ssGSEA/pp/signature_gct/"
 filename = "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n15x192.gct"
@@ -100,15 +101,16 @@ gct_file
 write_gct(gct_file, paste("../degs/ssGSEA/pp/signature_filtered/", "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n15x3.gct", sep=""))
 
 path = "../degs/ssGSEA/d21/signature_gct/"
-filename = "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n13x192.gct"
+filename = "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n15x192.gct"
 gct_file <- parse_gctx(paste(path, filename, sep=""))
 gct_file <- subset_gct(gct_file, rid = which(gct_file@rid %in% d21$hsymbol))
 gct_file
-write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n13x71.gct", sep=""))
+write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION_n15x60.gct", sep=""))
 
-path = "../degs/ssGSEA/pp/signature_gct/"
-filename = "HALLMARK_MYC_TARGETS_V2_n15x54.gct"
+
+path = "../degs/ssGSEA/d21/signature_gct/"
+filename = "HALLMARK_INFLAMMATORY_RESPONSE_n15x193.gct"
 gct_file <- parse_gctx(paste(path, filename, sep=""))
-gct_file <- subset_gct(gct_file, rid = which(gct_file@rid %in% pp$hsymbol))
+gct_file <- subset_gct(gct_file, rid = which(gct_file@rid %in% d21$hsymbol))
 gct_file
-write_gct(gct_file, paste("../degs/ssGSEA/pp/signature_filtered/", "HALLMARK_MYC_TARGETS_V2_n15x8.gct", sep=""))
+write_gct(gct_file, paste("../degs/ssGSEA/d21/signature_filtered/", "HALLMARK_INFLAMMATORY_RESPONSE_n15x16.gct", sep=""))
