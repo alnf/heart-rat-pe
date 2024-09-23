@@ -83,7 +83,7 @@ makeHeatmapFC <- function(fc, genes, contrast, filename, scale = "row") {
 
 
 
-makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02){
+makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02, width=520, height=480){
   venn.diagram(
     x = genesList,
     category.names = names,
@@ -94,8 +94,8 @@ makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02){
     
     # Output features
     imagetype="png" ,
-    height = 480 , 
-    width = 520 , 
+    height = height , 
+    width = width , 
     resolution = 300,
     compression = "lzw",
     margin = 0.05, 
@@ -116,7 +116,7 @@ makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02){
     #ext.pos = -4,
     
     # Set names
-    main.cex = 0.6,
+    main.cex = 0.4,
     main.fontface = "bold",
     cat.cex = 0.5,
     #cat.fontface = "bold",
@@ -222,4 +222,54 @@ MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
           legend.key.size = unit(1, 'cm'), #change legend key size
           legend.title = element_text(size=14), #change legend title font size
           legend.text = element_text(size=10))
+}
+
+
+compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T){
+  meta <- metadata[which(metadata$Region == region), ]
+  meta <- meta[which(meta$Pheno %in% pheno), ]
+  m <- lcounts[glist$ens_gene, which(colnames(lcounts) %in% meta$SampleNumber)]
+
+  annoRow <- list()
+  for (i in 1:length(dlists)) {
+    genes <- dlists[[i]]$ens_gene
+    anno <- rep(NA, nrow(m))
+    names(anno) <- rownames(m)
+    anno[which(names(anno) %in% genes)] <- cols[[names(dlists)[i]]]
+    anno <- list(anno) 
+    names(anno) <- names(dlists)[i]
+    annoRow <- append(annoRow, anno)
+  }
+  
+  if (!is.null(order)) {
+    meta$PhenoNames <- factor(meta$PhenoNames, levels = order)
+    meta <- meta[order(meta$PhenoNames),]
+    m <- m[,match(meta$SampleNumber, colnames(m))]
+  }
+  
+  if (csplit) {
+    cspl <- meta$PhenoNames
+  } else {
+    cspl = NULL
+  }
+  
+  anno_df = data.frame(matrix(NA, nrow = nrow(m), ncol = length(names(dlists))))
+  for (i in 1:ncol(anno_df)) {
+    anno_df[,i] <- rownames(m)
+  }
+  colnames(anno_df) <- names(dlists)
+  
+  rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
+  cha = HeatmapAnnotation(Group = meta[,c("PhenoNames")], col=annoCol, show_legend = clegend, show_annotation_name = F)
+  
+  
+  ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = clcol,
+               top_annotation = cha, right_annotation = rha, name = "expr",
+               column_split = cspl, row_split = NULL, cluster_row_slices = T, cluster_column_slices = T,
+               row_names_gp = gpar(fontsize = 14),
+               column_names_gp = gpar(fontsize = 14),
+               column_dend_height=unit(10, "mm"),
+               heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14))
+  )
+  return(ht)
 }

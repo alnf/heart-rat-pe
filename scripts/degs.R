@@ -164,43 +164,43 @@ save(rcounts, file = "../exprs/rcounts_heart.Rdata")
 save(exprs.h, file = "../exprs/vst_heart.Rdata")
 save(tpm_abd, file = "../exprs/tpm_abd_heart.Rdata")
 
-wrapDegs <- function(dds, t2g, contrast, region, sval.filter=TRUE) {
+wrapDegs <- function(dds, t2g, contrast, region, sval.filter=TRUE, lFC=1) {
   contrast[2:3] <- paste(region, contrast[2:3], sep="_")
   fname = paste(contrast[2:3], collapse="_")
   fname_short = paste("../degs/", region, "/degs_", fname, "_short.tsv", sep="")
   fname = paste("../degs/", region, "/degs_", fname, ".tsv", sep="")
-  getDEGs(dds.h, contrast, t2g, sval.filter=sval.filter, filename=fname, filename_short=fname_short)  
+  getDEGs(dds.h, contrast, t2g, sval.filter=sval.filter, filename=fname, filename_short=fname_short, lFC=lFC)  
 }
 
 region = "LV"
 
 contrast = c("Group","PEd21","SDd21")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","PEpp","SDpp")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","SDd21","np")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","SDpp","np")
-wrapDegs(dds.h, t2g, contrast, region, sval.filter=FALSE)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","PEd21","np")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","PEpp","np")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","SDd21","SDpp")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 contrast = c("Group","PEd21","PEpp")
-wrapDegs(dds.h, t2g, contrast, region)
+wrapDegs(dds.h, t2g, contrast, region, lFC=0.58)
 
 ### All genes
 types = c("_short.tsv", ".tsv")
-type = types[2]
+type = types[1]
 
 fname = paste(region, "PEd21", region, "SDd21", sep="_")
 PEd21_SDd21 <- read.table(paste("../degs/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
@@ -226,6 +226,199 @@ SDd21_np <- read.table(paste("../degs/", region, "/degs_", fname, type, sep=""),
 fname = paste(region, "SDpp", region, "np", sep="_")
 SDpp_np <- read.table(paste("../degs/", region, "/degs_", fname, type, sep=""), sep="\t", header = T)
 
+# Getting unions of genes
+agt <- t2g[which(t2g$symbol == "Agt"),]
+
+genes_pe <- c()
+genes_pe$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene, PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene))
+genes_pe <- as.data.frame(genes_pe)
+genes_pe <- genes_pe[-which(genes_pe$ens_gene==agt$ens_gene),,drop=F]
+
+genes_pe_reduced <- c()
+genes_pe_reduced$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene))
+genes_pe_reduced <- as.data.frame(genes_pe_reduced)
+genes_pe_reduced <- genes_pe_reduced[-which(genes_pe_reduced$ens_gene==agt$ens_gene),,drop=F]
+
+genes_norm <- c()
+genes_norm$ens_gene <- unique(c(SDd21_SDpp$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene))
+genes_norm <- as.data.frame(genes_norm)
+
+## Plotting venns and heatmaps
+
+### preg vs post
+names = c("PEd21_SDd21" , "PEpp_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, ".png", sep="")
+names = c("PEpreg_WTpreg", "PEpost_WTpost")
+makeVenn(2, list(PEd21_SDd21$ens_gene[-which(PEd21_SDd21$ens_gene==agt$ens_gene)], PEpp_SDpp$ens_gene[-which(PEpp_SDpp$ens_gene==agt$ens_gene)]),
+         names,
+         paste("DEGs in pregnancy and postpartum,\n lFC=0.58, ngenes=", nrow(genes_pe_reduced), " (genes_pe_reduced list)", sep=""),
+         fname, brewer.pal(3, "Pastel2")[1:2], width=600, height=550)
+
+pheno <- c("PEd21", "SDd21", "PEpp", "SDpp")
+region <- "LV"
+order = NULL
+dlists <- list(preg=PEd21_SDd21, post=PEpp_SDpp)
+cols <- list(preg="pink", post="lightblue")
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced, csplit=F, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe_reduced.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced, csplit=T, dlists, cols, annoCol, clegend=F)
+png("../plots/heatmap_genes_pe_reduced_csplit.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+order <- c("WTpreg", "WTpost", "PEpreg", "PEpost")
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced, csplit=T, dlists, cols, annoCol, clegend=F, clcol=F)
+png("../plots/heatmap_genes_pe_reduced_ordered.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+### preg, post, preg_effect
+names = c("PEd21_SDd21" , "PEpp_SDpp", "PEd21_PEpp", "SDd21_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, ".png", sep="")
+names = c("PEpreg_WTpreg", "PEpost_WTpost", "PEpreg_PEpost", "WTpreg_WTpost")
+makeVenn(4, list(PEd21_SDd21$ens_gene[-which(PEd21_SDd21$ens_gene==agt$ens_gene)], PEpp_SDpp$ens_gene[-which(PEpp_SDpp$ens_gene==agt$ens_gene)],
+                 PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene),
+         names,
+         paste("DEGs in pregnancy and postpartum and pregnancy effect,\n lFC=0.58, ngenes=", nrow(genes_pe), " (genes_pe list)", sep=""),
+         fname, brewer.pal(4, "Pastel2"), dist=0.15, width=800, height=650)
+
+
+pheno <- c("PEd21", "SDd21", "PEpp", "SDpp")
+region <- "LV"
+order = NULL
+dlists <- list(preg=PEd21_SDd21, post=PEpp_SDpp, pe_pref=PEd21_PEpp, wt_pref=SDd21_SDpp)
+cols <- list(preg="pink", post="lightblue", pe_pref="orange", wt_pref="maroon")
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe, csplit=F, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe, csplit=T, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe_csplit.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+order <- c("WTpreg", "WTpost", "PEpreg", "PEpost")
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe, csplit=T, dlists, cols, annoCol, clegend=T, clcol=F)
+png("../plots/heatmap_genes_pe_ordered.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+### norm pregnancy
+names = c("SDd21_SDpp", "SDd21_np", "SDpp_np")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, ".png", sep="")
+names = c("WTpreg_WTpost", "WTpreg_WTnp", "WTpost_WTnp")
+makeVenn(3, list(SDd21_SDpp$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene), names,
+         paste("DEGs in normal pregnancy,\n lFC=0.58, ngenes=", nrow(genes_norm), " (genes_norm list)", sep=""),
+         fname, brewer.pal(3, "Pastel2"))
+
+## lFC = 1
+PEd21_SDd21 <- PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),]
+PEpp_SDpp <- PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),]
+PEd21_PEpp <- PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),]
+SDd21_SDpp <- SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),]
+SDd21_np <- SDd21_np[which(abs(SDd21_np$log2FoldChange)>1),]
+SDpp_np <- SDpp_np[which(abs(SDpp_np$log2FoldChange)>1),]
+
+genes_pe_lfc1 <- c()
+genes_pe_lfc1$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene, PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene))
+genes_pe_lfc1 <- as.data.frame(genes_pe_lfc1)
+genes_pe_lfc1 <- genes_pe_lfc1[-which(genes_pe_lfc1$ens_gene==agt$ens_gene),,drop=F]
+
+genes_pe_reduced_lfc1 <- c()
+genes_pe_reduced_lfc1$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene))
+genes_pe_reduced_lfc1 <- as.data.frame(genes_pe_reduced_lfc1)
+genes_pe_reduced_lfc1 <- genes_pe_reduced_lfc1[-which(genes_pe_reduced_lfc1$ens_gene==agt$ens_gene),,drop=F]
+
+genes_norm_lfc1 <- c()
+genes_norm_lfc1$ens_gene <- unique(c(SDd21_SDpp$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene))
+genes_norm_lfc1 <- as.data.frame(genes_norm_lfc1)
+
+## Plotting venns for lFC=1
+names = c("PEd21_SDd21" , "PEpp_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, "_lfc1.png", sep="")
+names = c("PEpreg_WTpreg", "PEpost_WTpost")
+makeVenn(2, list(PEd21_SDd21$ens_gene[-which(PEd21_SDd21$ens_gene==agt$ens_gene)], PEpp_SDpp$ens_gene[-which(PEpp_SDpp$ens_gene==agt$ens_gene)]),
+         names,
+         paste("DEGs in pregnancy and postpartum,\n lFC=1, ngenes=", nrow(genes_pe_reduced_lfc1), " (genes_pe_reduced_lfc1 list)", sep=""),
+         fname, brewer.pal(3, "Pastel2")[1:2], width=600, height=550)
+
+pheno <- c("PEd21", "SDd21", "PEpp", "SDpp")
+region <- "LV"
+order = NULL
+dlists <- list(preg=PEd21_SDd21, post=PEpp_SDpp)
+cols <- list(preg="pink", post="lightblue")
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced_lfc1, csplit=F, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe_reduced_lfc1.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced_lfc1, csplit=T, dlists, cols, annoCol, clegend=F)
+png("../plots/heatmap_genes_pe_reduced_lfc1_csplit.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+order <- c("WTpreg", "WTpost", "PEpreg", "PEpost")
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_reduced_lfc1, csplit=T, dlists, cols, annoCol, clegend=F, clcol=F)
+png("../plots/heatmap_genes_pe_reduced_lfc1_ordered.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
+dev.off()
+
+###
+names = c("PEd21_SDd21" , "PEpp_SDpp", "PEd21_PEpp", "SDd21_SDpp")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, "_lfc1.png", sep="")
+names = c("PEpreg_WTpreg", "PEpost_WTpost", "PEpreg_PEpost", "WTpreg_WTpost")
+makeVenn(4, list(PEd21_SDd21$ens_gene[-which(PEd21_SDd21$ens_gene==agt$ens_gene)], PEpp_SDpp$ens_gene[-which(PEpp_SDpp$ens_gene==agt$ens_gene)],
+                 PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene),
+         names,
+         paste("DEGs in pregnancy and postpartum and pregnancy effect,\n lFC=1, ngenes=", nrow(genes_pe_lfc1), " (genes_pe_lfc1 list)", sep=""),
+         fname, brewer.pal(4, "Pastel2"), dist=0.15, width=800, height=650)
+
+pheno <- c("PEd21", "SDd21", "PEpp", "SDpp")
+region <- "LV"
+order = NULL
+dlists <- list(preg=PEd21_SDd21, post=PEpp_SDpp, pe_pref=PEd21_PEpp, wt_pref=SDd21_SDpp)
+cols <- list(preg="pink", post="lightblue", pe_pref="orange", wt_pref="maroon")
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_lfc1, csplit=F, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe_lfc1.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_lfc1, csplit=T, dlists, cols, annoCol, clegend=T)
+png("../plots/heatmap_genes_pe_lfc1_csplit.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+order <- c("WTpreg", "WTpost", "PEpreg", "PEpost")
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_lfc1, csplit=T, dlists, cols, annoCol, clegend=T, clcol=F)
+png("../plots/heatmap_genes_pe_lfc1_ordered.png", width = 10.5, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
+dev.off()
+
+
+###
+names = c("SDd21_SDpp", "SDd21_np", "SDpp_np")
+fname = paste(names, collapse="_")
+fname = paste("../plots/venn_", fname, "_lfc1.png", sep="")
+names = c("WTpreg_WTpost", "WTpreg_WTnp", "WTpost_WTnp")
+makeVenn(3, list(SDd21_SDpp$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene), names,
+         paste("DEGs in normal pregnancy,\n lFC=1, ngenes=", nrow(genes_norm_lfc1), " (genes_norm_lfc1 list)", sep=""),
+         fname, brewer.pal(3, "Pastel2"), width=800, height=750)
+
+
+########## Old
 all_genes <- c()
 all_genes$ens_gene <- unique(c(PEd21_SDd21$ens_gene, PEpp_SDpp$ens_gene, PEd21_PEpp$ens_gene, SDd21_SDpp$ens_gene,
                                PEd21_np$ens_gene, PEpp_np$ens_gene, SDd21_np$ens_gene, SDpp_np$ens_gene))
