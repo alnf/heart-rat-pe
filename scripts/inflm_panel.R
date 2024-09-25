@@ -39,11 +39,24 @@ impanel <- c("ENSRNOG00000010208", #TIMP1
              "ENSRNOG00000065741"  #IL7R
             )
 
+impanel = c("ENSRNOG00000001959",
+            "ENSRNOG00000017414",
+            "ENSRNOG00000001963",
+            "ENSRNOG00000022839",
+            "ENSRNOG00000069835",
+            "ENSRNOG00000028768",
+            "ENSRNOG00000056947",
+            "ENSRNOG00000001187",
+            "ENSRNOG00000037198",
+            "ENSRNOG00000049282",
+            "ENSRNOG00000001963"
+           )
 
+impanel = infs
 mleft <- metadata.left[,c("SampleNumber", "PhenoNames")]
 
 
-imexp <- lcounts[rownames(lcounts) %in% impanel,]
+imexp <- as.data.frame(lcounts[rownames(lcounts) %in% impanel,])
 imexp$ens_gene <- rownames(imexp)
 imexp <- melt(imexp, id="ens_gene")
 colnames(imexp)[2:3] <- c("SampleNumber", "expr")
@@ -62,7 +75,7 @@ comparisons <- list(c("WTpreg", "WTpost"), c("PEpreg", "PEpost"), c("WTpreg", "P
 ggboxplot(data=imexp, x="PhenoNames", y="expr", color="PhenoNames", add = "jitter") +
           stat_compare_means(method = "t.test", comparisons = comparisons) +
           scale_color_manual(values=annoCol$Group) +
-          facet_wrap(~symbol, ncol=5)
+          facet_wrap(~symbol, ncol=6)
 
 ggsave("../plots/pe_preg/immuno_panel.png", width = 5, height = 30, dpi = 80)
 

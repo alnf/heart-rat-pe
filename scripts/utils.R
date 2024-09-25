@@ -225,7 +225,7 @@ MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
 }
 
 
-compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T){
+compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T, rsplit=NULL){
   meta <- metadata[which(metadata$Region == region), ]
   meta <- meta[which(meta$Pheno %in% pheno), ]
   m <- lcounts[glist$ens_gene, which(colnames(lcounts) %in% meta$SampleNumber)]
@@ -252,7 +252,7 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cspli
   } else {
     cspl = NULL
   }
-  
+
   anno_df = data.frame(matrix(NA, nrow = nrow(m), ncol = length(names(dlists))))
   for (i in 1:ncol(anno_df)) {
     anno_df[,i] <- rownames(m)
@@ -265,7 +265,7 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cspli
   
   ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = clcol,
                top_annotation = cha, right_annotation = rha, name = "expr",
-               column_split = cspl, row_split = NULL, cluster_row_slices = T, cluster_column_slices = T,
+               column_split = cspl, row_split = rsplit, cluster_row_slices = F, cluster_column_slices = T,
                row_names_gp = gpar(fontsize = 14),
                column_names_gp = gpar(fontsize = 14),
                column_dend_height=unit(10, "mm"),

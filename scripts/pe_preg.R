@@ -522,3 +522,74 @@ plots[1]
 
 ora_selected <- cem@ora
 
+
+
+
+
+# CEM for final heatmaps
+
+anno_data <- metadata.left[,c("SampleNumber", "PhenoNames")]
+anno_data$SampleNumber <- as.character(anno_data$SampleNumber)
+colnames(anno_data) <- c("SampleName", "Class")
+unregister_dopar <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+unregister_dopar()
+
+m <- lcounts[genes_pe_lfc1$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+m <- lcounts[genes_pe_reduced_lfc1$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+
+cem <- cemitool(as.data.frame(m), anno_data, filter = F,
+                force_beta = T, apply_vst = F, rank_method = "median",
+                gsea_min_size = 10
+)
+cem
+cem@enrichment_plot
+
+
+gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
+gmt_in <- read_gmt("../databases/msigdb/c2.cp.kegg_legacy.v2023.2.Hs.symbols.gmt")
+gmt_in <- merge(gmt_in, t2gh, by.x="gene", by.y="hsymbol")
+gmt_merged <- gmt_in
+gmt_in <- gmt_in[,c(2:3)]
+colnames(gmt_in)[2] <- "gene" 
+
+cem <- mod_ora(cem, gmt_in)
+#mod_colors(cem) <- mod_cols
+cem <- plot_ora(cem, pv_cut=0.05)
+plots <- show_plot(cem, "ora")
+plots[1]
+plots[2]
+plots[3]
+plots[4]
+plots[5]
+
+figure <- ggarrange(plots[1]$M1$pl, plots[2]$M2$pl, plots[3]$M3$pl, plots[4]$M4$pl, plots[5]$M5$pl,
+                    ncol = 3, nrow = 2)
+figure <- ggarrange(plots[1]$M1$pl, plots[2]$M2$pl, plots[3]$M3$pl,
+                    ncol = 3, nrow = 1)
+figure
+
+ora <- cem@ora
+cem@module$genes[which(cem@module$modules=="M4")]
+
+infgamma <- ora[which(ora$ID=="HALLMARK_INTERFERON_GAMMA_RESPONSE"),]$geneID
+infgamma <- str_split(infgamma, "/")
+infgamma <- unlist(infgamma)
+infgamma <- unique(infgamma)
+
+infalpha <- ora[which(ora$ID=="HALLMARK_INTERFERON_ALPHA_RESPONSE"),]$geneID
+infalpha <- str_split(infalpha, "/")
+infalpha <- unlist(infalpha)
+infalpha <- unique(infalpha)
+infs <- c(infgamma, infalpha)
+infs <- unique(infs)
+
+
+gmt_merged[gmt_merged$ens_gene %in% infs,]
+gmt_merged[gmt_merged$ens_gene %in% cem@module$genes[which(cem@module$modules=="M4")],]
+
+
+ora[which(ora$Module=="M4"),]$geneID
