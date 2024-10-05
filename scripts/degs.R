@@ -386,15 +386,21 @@ png("../plots/heatmap_genes_pe_reduced_lfc1_ordered_fl.png", width = 10.5, heigh
 draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
 dev.off()
 
+library(InteractiveComplexHeatmap)
+htShiny(ht)
+
+
 #### Modules
 m1 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M1"),]$genes)
 m2 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M2"),]$genes)
 m3 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M3"),]$genes)
 
 IFN <- data.frame(ens_gene = infs)
-dlists <- list(preg=PEd21_SDd21, post=PEpp_SDpp, M1=m1, M2=m2, M3=m3, IFN = IFN, sig=pp)
-cols <- list(preg="pink", post="lightblue", pe_pref="orange", wt_pref="maroon",
-             M1="#820D3F", M2="#E64A00", M3="#3B3EDE", M4="#871C9A", IFN = "darkgreen", sig="darkgray", Not.Correlated="gray")
+
+dlists <- list(preg=PEd21_SDd21, pregsig=d21, post=PEpp_SDpp, postsig=pp, M1=m1, M2=m2, M3=m3, IFN = IFN, )
+cols <- list(preg="pink", pregsig="#585050", post="lightblue", postsig="darkgray",
+             pe_pref="orange", wt_pref="maroon",
+             M1="#820D3F", M2="#E64A00", M3="#3B3EDE", M4="#871C9A", IFN = "darkgreen", Not.Correlated="gray")
 
 rspl <- data.frame(modules = cem@module$modules)
 rspl$ens_gene <- rownames(m)
@@ -405,7 +411,7 @@ glist <- genes_pe_reduced_lfc1
 glist$ens_gene <- genes_pe_reduced_lfc1$ens_gene[order(match(genes_pe_reduced_lfc1$ens_gene, rspl$ens_gene))]
 
 order <- c("PEpreg", "WTpreg", "PEpost", "WTpost")
-ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=T, clcol=F, rsplit=rspl$modules)
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=F, rsplit=rspl$modules)
 png("../plots/heatmap_genes_pe_reduced_lfc1_ordered_modules_ifn_fl.png", width = 10.5, height = 9, units="in", res=100)
 draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
 dev.off()
@@ -444,7 +450,7 @@ draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
 dev.off()
 
 order <- c("PEpreg", "WTpreg", "PEpost", "WTpost")
-ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_lfc1, csplit=T, dlists, cols, annoCol, clegend=T, clcol=F)
+ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, genes_pe_lfc1, csplit=T, dlists, cols, annoCol, clegend=F, clcol=F)
 png("../plots/heatmap_genes_pe_lfc1_ordered_fl.png", width = 10.5, height = 9.1, units="in", res=100)
 draw(ht, padding = unit(c(2, 2, 2, 3), "mm"))
 dev.off()
@@ -457,14 +463,17 @@ m4 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M4"),]$genes)
 m5 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M5"),]$genes)
 
 IFN <- data.frame(ens_gene = infs)
+E2F <- data.frame(ens_gene = e2f)
+MIS <- data.frame(ens_gene = mis)
+G2M <- data.frame(ens_gene = g2m)
 dlists <- list(preg=PEd21_SDd21,  pregsig=d21, post=PEpp_SDpp, postsig=pp,
                pe_pref=PEd21_PEpp, wt_pref=SDd21_SDpp,
                M1=m1, M2=m2, M3=m3, M4=m4, M5=m5,
-               IFN=IFN)
+               IFN=IFN, E2F=E2F, MIS=MIS, G2M=G2M)
 cols <- list(preg="pink", pregsig="#585050", post="lightblue", postsig="darkgray", 
              pe_pref="orange", wt_pref="maroon",
              M1="#820D3F", M2="#E64A00", M3="#3B3EDE", M4="#871C9A", M5="#14C7BA",
-             IFN="darkgreen", Not.Correlated="gray")
+             IFN="darkgreen", E2F="green", MIS="maroon", G2M="darkblue", Not.Correlated="gray")
 
 rspl <- data.frame(modules = cem@module$modules)
 rspl$ens_gene <- rownames(m)
