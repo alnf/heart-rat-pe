@@ -547,6 +547,11 @@ cem <- cemitool(as.data.frame(m), anno_data, filter = F,
 cem
 cem@enrichment_plot
 
+m2genes <- cem@module$genes[which(cem@module$modules=="M2")]
+m2genes <- m2genes[which(m2genes %in% d21$ens_gene)]
+lfcsign <- ifelse(d21$log2FoldChange[d21$ens_gene %in% m2genes] > 0, "P1", "P2")
+module <- data.frame(genes=m2genes, modules=lfcsign)
+cem@module <- module
 
 gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
 gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
@@ -587,9 +592,88 @@ infalpha <- unique(infalpha)
 infs <- c(infgamma, infalpha)
 infs <- unique(infs)
 
+e2f <- ora[which(ora$ID=="HALLMARK_E2F_TARGETS"),]$geneID
+e2f <- str_split(e2f, "/")
+e2f <- unlist(e2f)
+e2f <- unique(e2f)
+
+mis <- ora[which(ora$ID=="HALLMARK_MITOTIC_SPINDLE"),]$geneID
+mis <- str_split(mis, "/")
+mis <- unlist(mis)
+mis <- unique(mis)
+
+g2m <- ora[which(ora$ID=="HALLMARK_G2M_CHECKPOINT"),]$geneID
+g2m <- str_split(g2m, "/")
+g2m <- unlist(g2m)
+g2m <- unique(g2m)
 
 gmt_merged[gmt_merged$ens_gene %in% infs,]
 gmt_merged[gmt_merged$ens_gene %in% cem@module$genes[which(cem@module$modules=="M4")],]
 
 
 ora[which(ora$Module=="M4"),]$geneID
+
+
+ora_all <- cem@ora
+ora_back <- ora_all
+ora_all <- rbind(ora_all, cem@ora)
+ora_all <- ora_all[which(ora_all$p.adjust<0.05),]
+ora_all <- ora_all[which(!is.na(ora_all$qvalue)),]
+
+ora_all$pathway <- sapply(strsplit(ora_all$ID,"_"), `[`, 1)
+ora_all$ID <- sub(".*?_", "", ora_all$ID)
+ora_all$ID <- gsub("_", " ", ora_all$ID)
+ora_all$geneRatio <- sapply(ora_all$GeneRatio, function(x) eval(parse(text=x)))
+
+ora_all <- ora_all[which(ora_all$Count>5),]
+
+ora_all %>% group_by(Module) %>% slice_max(order_by = geneRatio, n = 10) -> ora_all
+ora_all$pathway <- as.factor(ora_all$pathway)
+ora_all$ID <- factor(ora_all$ID, levels=ora_all$ID)
+
+ordered_ids <- forcats::fct_reorder(ora_all$ID, ora_all$geneRatio)
+ora_all <- ora_all[order(match(ora_all$ID, ordered_ids)),]
+
+ora_all %>% group_by(Module)
+
+a <- ifelse(ora_all$pathway == "HALLMARK", "black", "#217364")
+names(a) <- ora_all$pathway
+
+library(ggh4x)
+strip <- strip_themed(text_x = elem_list_text(color = mcols))
+
+mcols <- c(M1="#820D3F", M2="#E64A00", M3="#3B3EDE", M4="#871C9A", M5="#14C7BA")
+png("../plots/enrich_genes_pe_lfc1.png",  width = 17, height = 6, units="in", res=80)
+
+png("../plots/enrich_genes_pe_reduced_lfc1.png",  width = 20, height = 5, units="in", res=80)
+ggplot(ora_all,
+       aes(geneRatio, forcats::fct_reorder(ID, geneRatio))) + 
+       geom_point(aes(color=p.adjust, size = Count)) +
+       scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
+       scale_size_continuous(range=c(1, 7)) +
+       geom_segment(aes(xend=0, yend = ID)) +
+       theme_minimal() +
+       theme(axis.text.y = element_text(colour = a)) +
+       xlab("Gene Ratio") +
+       ylab(NULL) + 
+       facet_wrap2(~Module, scales="free", strip = strip) +
+       theme(strip.text.x = element_text(colour = mcols, size=14, face="bold"))
+
+pcols <- c("HALLMARK"="black", "GOBP"="#217364")
+lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
+draw(lgd, x = unit(0.3, "in"), y = unit(0.5, "in"), just = c("left", "bottom"))
+dev.off()
+
+
+ggplot(ora_all,
+       aes(geneRatio, forcats::fct_reorder(ID, geneRatio))) + 
+  geom_point(aes(color=p.adjust, size = Count)) +
+  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
+  scale_size_continuous(range=c(1, 7)) +
+  geom_segment(aes(xend=0, yend = ID)) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(colour = a)) +
+  xlab("Gene Ratio") +
+  ylab(NULL) + 
+  facet_wrap(~Module, scales="free") +
+  theme(strip.text.x = element_text(colour = mcols, size=14, face="bold"))
