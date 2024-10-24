@@ -557,6 +557,7 @@ gmt_in <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
 gmt_in <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
 gmt_in <- read_gmt("../databases/msigdb/c2.cp.kegg_legacy.v2023.2.Hs.symbols.gmt")
 gmt_in <- merge(gmt_in, t2gh, by.x="gene", by.y="hsymbol")
+
 gmt_merged <- gmt_in
 gmt_in <- gmt_in[,c(2:3)]
 colnames(gmt_in)[2] <- "gene" 
@@ -677,3 +678,62 @@ ggplot(ora_all,
   ylab(NULL) + 
   facet_wrap(~Module, scales="free") +
   theme(strip.text.x = element_text(colour = mcols, size=14, face="bold"))
+
+
+
+# Upset plot
+ora_back <- ora_all
+ora_all$geneID <- sapply(strsplit(ora_all$geneID,"/"), `[`, )
+names(ora_all$geneID) <- ora_all$ID
+
+modname = "M2"
+ups <- make_comb_mat(ora_all[which(ora_all$Module==modname),]$geneID, mode = "intersect")
+ups <- ups[comb_size(ups) >= 0 & comb_degree(ups) == 2]
+
+us <- UpSet(ups, pt_size = unit(4, "mm"), lwd = 2,
+      comb_col = brewer.pal(comb_degree(ups)[1], "Dark2")[comb_degree(ups)],
+      top_annotation = upset_top_annotation(ups, add_numbers = TRUE),
+      right_annotation = upset_right_annotation(ups, add_numbers = TRUE),
+      row_names_gp = grid::gpar(fontsize = 9),
+      comb_order = order(comb_size(ups)))
+#png(paste("../plots/final/final_upset_genes_pe_lfc1_",modname,".png", sep=""), width = 15, height = 5, units="in", res=100)
+draw(us, padding = unit(c(2, 29, 2, 2), "mm"))
+#dev.off()
+
+library(dbscan)
+library(ggrepel)
+library("FactoMineR")
+library("factoextra")
+
+oras <- ora_all[which(ora_all$Module==modname),]
+ltm <- list_to_matrix(oras$geneID)
+ltm <- as.data.frame(ltm)
+ltm[] <- lapply(ltm, as.character)
+cats = apply(ltm, 2, function(x) nlevels(as.factor(x)))
+cats
+
+mca <- MCA(t(ltm), ncp = 2, graph = F)
+fviz_mca_ind(mca, 
+             repel = TRUE, # Avoid text overlapping (slow if many point)
+             ggtheme = theme_minimal())
+
+
+mca_df = data.frame(mca$var$coord, Variable = rep(names(cats), cats))
+autoplot(mca_df, data = oras, colour = "Cluster",
+         label.show.legend = F) +
+  geom_text_repel(aes(label = ID, colour = Cluster), size = 3, box.padding = 1.5)
+
+
+
+
+ltm <- list_to_matrix(oras$geneID)
+pca <- prcomp(t(ltm))
+rownames(oras) <- oras$ID
+cl <- hdbscan(t(ltm), minPts = 2, gen_simplified_tree = F)
+oras$Cluster <- as.factor(cl$cluster)
+autoplot(pca, data = oras, colour = "Cluster",
+         label.show.legend = F) +
+  geom_text_repel(aes(label = ID, colour = Cluster), size = 3, max.overlaps = 25, force = 2)
+
+
+

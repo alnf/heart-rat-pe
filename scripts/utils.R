@@ -225,7 +225,7 @@ MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
 }
 
 
-compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T, rsplit=NULL){
+compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T, rsplit=NULL, modcols){
   meta <- metadata[which(metadata$Region == region), ]
   meta <- meta[which(meta$Pheno %in% pheno), ]
   m <- lcounts[glist$ens_gene, which(colnames(lcounts) %in% meta$SampleNumber)]
@@ -262,14 +262,17 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cspli
   rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
   cha = HeatmapAnnotation(Group = meta[,c("PhenoNames")], col=annoCol, show_legend = clegend, show_annotation_name = F)
   
-  
+  lha = rowAnnotation(Module = anno_block(gp = gpar(fill = modcols), labels = names(modcols)))
+    
   ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = clcol,
-               top_annotation = cha, right_annotation = rha, name = "expr",
+               top_annotation = cha, right_annotation = rha, left_annotation = lha,
+               name = "expr",
                column_split = cspl, row_split = rsplit, cluster_row_slices = F, cluster_column_slices = T,
                row_names_gp = gpar(fontsize = 14),
                column_names_gp = gpar(fontsize = 14),
                column_dend_height=unit(10, "mm"),
-               heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14))
+               heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14)),
+               row_title=NULL
   )
   return(ht)
 }
