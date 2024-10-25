@@ -225,7 +225,7 @@ MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
 }
 
 
-compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, csplit=T, dlists, cols, annoCol, clegend=F, clcol=T, rsplit=NULL, modcols){
+compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cc = F, csplit=T, dlists, cols, annoCol, clegend=F, rsplit=NULL, modcols){
   meta <- metadata[which(metadata$Region == region), ]
   meta <- meta[which(meta$Pheno %in% pheno), ]
   m <- lcounts[glist$ens_gene, which(colnames(lcounts) %in% meta$SampleNumber)]
@@ -260,19 +260,37 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cspli
   colnames(anno_df) <- names(dlists)
   
   rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
-  cha = HeatmapAnnotation(Group = meta[,c("PhenoNames")], col=annoCol, show_legend = clegend, show_annotation_name = F)
+  cha = HeatmapAnnotation(Group = meta[,c("PhenoNames")], col=annoCol, show_legend = clegend, show_annotation_name = F,
+                          annotation_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 13, fontface = "bold"),
+                                                         grid_height = unit(7, "mm"), grid_width = unit(7, "mm"),
+                                                         labels = order))
   
-  lha = rowAnnotation(Module = anno_block(gp = gpar(fill = modcols), labels = names(modcols)))
+  labels = names(modcols)
+  labels[which(labels=="NC")] <- ""
     
-  ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = clcol,
+  lha = rowAnnotation(Module = anno_block(gp = gpar(fill = modcols), labels = labels))
+  if (cc) {
+    hc <- hclust(dist(t(m)), method="average")
+    dd <- as.dendrogram(hc)
+    dd <- rotate(dd, as.character(meta$SampleNumber))
+    #dd <- reorder(dd, meta$SampleNumber)
+    cspl = 4
+    ctitle = NULL
+  } else {
+    dd = cc
+    ctitle = order
+  }
+  
+  ht = Heatmap(t(scale(t(m))), show_row_names = F, show_row_dend = F, show_column_names = T, cluster_columns = dd,
                top_annotation = cha, right_annotation = rha, left_annotation = lha,
                name = "expr",
                column_split = cspl, row_split = rsplit, cluster_row_slices = F, cluster_column_slices = T,
                row_names_gp = gpar(fontsize = 14),
                column_names_gp = gpar(fontsize = 14),
-               column_dend_height=unit(10, "mm"),
-               heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 14)),
-               row_title=NULL
+               column_dend_height=unit(20, "mm"),
+               heatmap_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 13),
+                                           legend_direction = "horizontal", title_position = "topcenter"),
+               row_title=NULL, column_title=ctitle
   )
   return(ht)
 }
