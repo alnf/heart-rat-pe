@@ -211,84 +211,46 @@ plot_data <- ora %>%
   arrange(Module, geneRatio) %>%
   mutate(rank = row_number())
 
+plot_data$ID <- stringr::str_to_title(plot_data$ID)
 plot_data$y <- 1:nrow(plot_data)
 plot_data$y <- factor(plot_data$y)
 
 idnames <- as.character(plot_data$ID)
 names(idnames) <- plot_data$y
 
-idcols <- plot_data$col
-names(idcols) <- plot_data$y
-
-axis_text_color <- function(plot, col = "fill") {
-  c <- ggplot_build(plot)$data[[3]]
-  plot +
-    theme(axis.text.y = element_text(color = c[[col]])) +
-    facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y")
-}
-
 plot_data$pathway <- factor(plot_data$pathway)
 
-ggplot(plot_data, aes(geneRatio, y)) + 
-  geom_point(aes(color=p.adjust, size = Count)) +
-  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
-  scale_size_continuous(range=c(1, 7)) +
-  geom_segment(aes(xend=0, yend = y)) +
-  #theme_minimal() +
-  xlab("Gene Ratio") +
-  ylab(NULL) + 
-#  geom_blank(aes(y=y, fill=pathway)) +
-  facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y") +
-  scale_y_discrete(
-    #breaks = plot_data$rank, # specify tick breaks using rank column
-    labels = idnames # specify tick labels using x column
-  ) -> p
+p <- ggplot(plot_data, aes(geneRatio, y)) + 
+      geom_point(aes(color=p.adjust, size = Count)) +
+      scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
+      scale_size_continuous(range=c(1, 7)) +
+      geom_segment(aes(xend=0, yend = y)) +
+      theme_minimal() +
+      xlab("Gene Ratio") +
+      ylab(NULL) + 
+      facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y") +
+      scale_y_discrete(labels = idnames)
 p
+axis_text_color <- function(plot, plot_data) {
+  g <- ggplotGrob(plot)
+  yaxis_grobs <- which(grepl("axis-l", g$layout$name))
+  for (i in yaxis_grobs) {
+    labels <- g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$label
+    colors <- plot_data[which(plot_data$ID %in% labels), c("ID", "col")]
+    colors <- colors[!duplicated(colors$ID),]
+    colors <- colors[match(labels, colors$ID),]
+    colors <- colors$col
+    names(colors) <- labels
+    g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = colors, fontsize = 8.8, lineheight = 0.9)    
+    labels <- sub(".*? ", "", labels)
+    g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$label <- labels
+  }
+  return(as_ggplot(g))
+}
 
-g <- ggplotGrob(p)
-yaxis_grobs <- which(grepl("axis-l", g$layout$name))
-
-y_grob <- g$grobs[[yaxis_grobs[1]]]$children[[2]]
-
-g$grobs[[17]]$children[[2]]$grobs[[2]]$children[[1]]$label
-g$grobs[[17]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = "red", fontsize = 8.8, lineheight = 0.9)
-
-grid.newpage()
-grid.draw(g)
-
-axis_text_color(p)
-c <- ggplot_build(p)$data[[3]]
-cc <- ggplot_build(p)$data[[1]]
-c %>% group_by(PANEL) %>% arrange(desc(y), .by_group = TRUE) -> c
-
-c[["fill"]]
-
-
-
-ggsave("../plots/final/enrich_genes_pe_lfc1.png", width=10, height = 20, dpi = 100)
-
-
-ggplot(ora, aes(geneRatio, forcats::fct_reorder(ID, geneRatio))) + 
-  geom_point(aes(color=p.adjust, size = Count)) +
-  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
-  scale_size_continuous(range=c(1, 7)) +
-  geom_segment(aes(xend=0, yend = ID)) +
-  #theme_minimal() +
-  xlab("Gene Ratio") +
-  ylab(NULL)
-
-
-
-
-
-
-
-
-
-pcols <- c("HALLMARK"="black", "GOBP"="#217364")
+png("../plots/final/enrich_genes_pe_lfc1.png",  width = 17, height = 6, units="in", res=80)
+axis_text_color(p, plot_data)
+pcols <- c("HALLMARK"="black", "GO Biological Process"="#217364")
 lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
-draw(lgd, x = unit(0.3, "in"), y = unit(0.5, "in"), just = c("left", "bottom"))
-
-png("../plots/enrich_genes_pe_lfc1.png",  width = 17, height = 6, units="in", res=80)
-png("../plots/enrich_genes_pe_reduced_lfc1.png",  width = 20, height = 5, units="in", res=80)
+draw(lgd, x = unit(0.3, "in"), y = unit(0.3, "in"), just = c("left", "bottom"))
 dev.off()
