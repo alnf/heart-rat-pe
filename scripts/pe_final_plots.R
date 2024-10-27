@@ -180,3 +180,115 @@ draw(ht, padding = unit(c(5, 2, 2, 3), "mm"), heatmap_legend_side = "bottom")
 png("../plots/final/final_heatmap_genes_pe_lfc1_dd.png", width = 10.5, height = 9, units="in", res=100)
 draw(ht, padding = unit(c(5, 2, 2, 3), "mm"), heatmap_legend_side = "bottom")
 dev.off()
+
+
+### Plot enrichment
+gmt_hm <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
+gmt_hm$term <- gsub("HALLMARK", "HM", gmt_hm$term)
+gmt_bp <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
+gmt_bp$term <- gsub("GOBP", "BP", gmt_bp$term)
+gmt_in <- rbind(gmt_hm, gmt_bp)
+gmt_in <- merge(gmt_in, t2gh, by.x="gene", by.y="hsymbol")
+gmt_in <- gmt_in[,c(2:3)]
+colnames(gmt_in)[2] <- "gene" 
+
+cem <- mod_ora(cem, gmt_in)
+ora <- cem@ora
+
+ora$pathway <- sapply(strsplit(ora$ID,"_"), `[`, 1)
+#ora$ID <- sub(".*?_", "", ora$ID)
+ora$ID <- gsub("_", " ", ora$ID)
+ora$geneRatio <- sapply(ora$GeneRatio, function(x) eval(parse(text=x)))
+
+ora <- ora[which(ora$Count>5),]
+ora %>% group_by(Module) %>% slice_max(order_by = geneRatio, n = 10) -> ora
+ora$col <- ifelse(ora$pathway == "HM", "black", "#217364")
+
+strip <- strip_themed(text_y = elem_list_text(color = rep("white", 5), size=rep(14, 5), face=rep("bold", 5)),
+                      background_y = elem_list_rect(fill = mcols[9:13]))
+
+plot_data <- ora %>%
+  arrange(Module, geneRatio) %>%
+  mutate(rank = row_number())
+
+plot_data$y <- 1:nrow(plot_data)
+plot_data$y <- factor(plot_data$y)
+
+idnames <- as.character(plot_data$ID)
+names(idnames) <- plot_data$y
+
+idcols <- plot_data$col
+names(idcols) <- plot_data$y
+
+axis_text_color <- function(plot, col = "fill") {
+  c <- ggplot_build(plot)$data[[3]]
+  plot +
+    theme(axis.text.y = element_text(color = c[[col]])) +
+    facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y")
+}
+
+plot_data$pathway <- factor(plot_data$pathway)
+
+ggplot(plot_data, aes(geneRatio, y)) + 
+  geom_point(aes(color=p.adjust, size = Count)) +
+  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
+  scale_size_continuous(range=c(1, 7)) +
+  geom_segment(aes(xend=0, yend = y)) +
+  #theme_minimal() +
+  xlab("Gene Ratio") +
+  ylab(NULL) + 
+#  geom_blank(aes(y=y, fill=pathway)) +
+  facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y") +
+  scale_y_discrete(
+    #breaks = plot_data$rank, # specify tick breaks using rank column
+    labels = idnames # specify tick labels using x column
+  ) -> p
+p
+
+g <- ggplotGrob(p)
+yaxis_grobs <- which(grepl("axis-l", g$layout$name))
+
+y_grob <- g$grobs[[yaxis_grobs[1]]]$children[[2]]
+
+g$grobs[[17]]$children[[2]]$grobs[[2]]$children[[1]]$label
+g$grobs[[17]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = "red", fontsize = 8.8, lineheight = 0.9)
+
+grid.newpage()
+grid.draw(g)
+
+axis_text_color(p)
+c <- ggplot_build(p)$data[[3]]
+cc <- ggplot_build(p)$data[[1]]
+c %>% group_by(PANEL) %>% arrange(desc(y), .by_group = TRUE) -> c
+
+c[["fill"]]
+
+
+
+ggsave("../plots/final/enrich_genes_pe_lfc1.png", width=10, height = 20, dpi = 100)
+
+
+ggplot(ora, aes(geneRatio, forcats::fct_reorder(ID, geneRatio))) + 
+  geom_point(aes(color=p.adjust, size = Count)) +
+  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
+  scale_size_continuous(range=c(1, 7)) +
+  geom_segment(aes(xend=0, yend = ID)) +
+  #theme_minimal() +
+  xlab("Gene Ratio") +
+  ylab(NULL)
+
+
+
+
+
+
+
+
+
+pcols <- c("HALLMARK"="black", "GOBP"="#217364")
+lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
+draw(lgd, x = unit(0.3, "in"), y = unit(0.5, "in"), just = c("left", "bottom"))
+
+png("../plots/enrich_genes_pe_lfc1.png",  width = 17, height = 6, units="in", res=80)
+png("../plots/enrich_genes_pe_reduced_lfc1.png",  width = 20, height = 5, units="in", res=80)
+dev.off()
