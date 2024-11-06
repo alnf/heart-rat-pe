@@ -183,17 +183,19 @@ dev.off()
 
 
 ### Plot enrichment
-gmt_hm <- read_gmt("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt")
-gmt_hm$term <- gsub("HALLMARK", "HM", gmt_hm$term)
-gmt_bp <- read_gmt("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt")
-gmt_bp$term <- gsub("GOBP", "BP", gmt_bp$term)
-gmt_in <- rbind(gmt_hm, gmt_bp)
-gmt_in <- merge(gmt_in, t2gh, by.x="gene", by.y="hsymbol")
-gmt_in <- gmt_in[,c(2:3)]
-colnames(gmt_in)[2] <- "gene" 
+get_ora <- function(gmt_path, t2gh, cem) {
+  gmt <- read_gmt(gmt_path)
+  gmt <- merge(gmt, t2gh, by.x="gene", by.y="hsymbol")
+  gmt <- gmt[,c(2:3)]
+  colnames(gmt)[2] <- "gene"
+  cem <- mod_ora(cem, gmt)
+  ora <- cem@ora
+  return(ora)
+}
 
-cem <- mod_ora(cem, gmt_in)
-ora <- cem@ora
+ora_hm <- get_ora("../databases/msigdb/h.all.v2023.2.Hs.symbols.gmt", t2gh, cem)
+ora_bp <- get_ora("../databases/msigdb/c5.go.bp.v2023.2.Hs.symbols.gmt", t2gh, cem)
+ora <- rbind(ora_hm, ora_bp)
 
 ora$pathway <- sapply(strsplit(ora$ID,"_"), `[`, 1)
 #ora$ID <- sub(".*?_", "", ora$ID)
@@ -202,7 +204,7 @@ ora$geneRatio <- sapply(ora$GeneRatio, function(x) eval(parse(text=x)))
 
 ora <- ora[which(ora$Count>5),]
 ora %>% group_by(Module) %>% slice_max(order_by = geneRatio, n = 10) -> ora
-ora$col <- ifelse(ora$pathway == "HM", "black", "#217364")
+ora$col <- ifelse(ora$pathway == "HALLMARK", "black", "#217364")
 
 strip <- strip_themed(text_y = elem_list_text(color = rep("white", 5), size=rep(14, 5), face=rep("bold", 5)),
                       background_y = elem_list_rect(fill = mcols[9:13]))
@@ -229,7 +231,8 @@ p <- ggplot(plot_data, aes(geneRatio, y)) +
       xlab("Gene Ratio") +
       ylab(NULL) + 
       facet_grid2(Module~., scales="free_y", strip = strip, drop=T, axes = "margins", space = "free_y") +
-      scale_y_discrete(labels = idnames)
+      scale_y_discrete(labels = idnames) +
+      theme(axis.text.y = element_text(size = 11))
 p
 axis_text_color <- function(plot, plot_data) {
   g <- ggplotGrob(plot)
@@ -241,16 +244,80 @@ axis_text_color <- function(plot, plot_data) {
     colors <- colors[match(labels, colors$ID),]
     colors <- colors$col
     names(colors) <- labels
-    g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = colors, fontsize = 8.8, lineheight = 0.9)    
+    g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = colors, lineheight = 0.9)    
     labels <- sub(".*? ", "", labels)
     g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$label <- labels
   }
   return(as_ggplot(g))
 }
 
-png("../plots/final/enrich_genes_pe_lfc1.png",  width = 17, height = 6, units="in", res=80)
+#png("../plots/final/enrich_genes_pe_lfc1.png",  width = 10, height = 10, units="in", res=80)
+png("../plots/final/enrich_genes_pe_lfc1.png",  width = 10, height = 10, units="in", res=80)
 axis_text_color(p, plot_data)
 pcols <- c("HALLMARK"="black", "GO Biological Process"="#217364")
 lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
 draw(lgd, x = unit(0.3, "in"), y = unit(0.3, "in"), just = c("left", "bottom"))
 dev.off()
+
+
+## Plot upset
+ora$geneID <- sapply(strsplit(ora$geneID,"/"), `[`, )
+names(ora$geneID) <- ora$ID
+
+modname = "M1"
+
+degree = 1
+ups <- make_comb_mat(ora[which(ora$Module==modname),]$geneID, mode = "intersect")
+#ups <- ups[comb_size(ups) >= 1 & comb_degree(ups) == degree]
+
+us <- UpSet(ups, pt_size = unit(4, "mm"), lwd = 2,
+            comb_col = brewer.pal(comb_degree(ups)[1], "Paired")[comb_degree(ups)],
+            top_annotation = upset_top_annotation(ups, add_numbers = TRUE),
+            right_annotation = upset_right_annotation(ups, add_numbers = TRUE),
+            row_names_gp = grid::gpar(fontsize = 9),
+            comb_order = order(comb_size(ups)))
+
+#draw(us, padding = unit(c(2, 70, 2, 2), "mm"))
+#M1 40, 55
+#M2 65 190
+#M3 25 115
+#M4 25 55
+#M5 25 15
+png(paste("../plots/final/final_upset_genes_pe_lfc1_",modname,".png", sep=""), width = 15, height = 5, units="in", res=100)
+draw(us, padding = unit(c(2, 25, 2, 2), "mm"))
+dev.off()
+
+
+oras <- ora[which(ora$Module==modname),]
+ltm <- list_to_matrix(oras$geneID)
+ltm <- as.data.frame(ltm)
+ltm[] <- lapply(ltm, as.character)
+cats = apply(ltm, 2, function(x) nlevels(as.factor(x)))
+cats
+
+mca <- MCA(t(ltm), ncp = 2, graph = F)
+fviz_mca_ind(mca, 
+             repel = TRUE, # Avoid text overlapping (slow if many point)
+             ggtheme = theme_minimal())
+
+
+mca_df = data.frame(mca$var$coord, Variable = rep(names(cats), cats))
+autoplot(mca_df, data = oras, colour = "Cluster",
+         label.show.legend = F) +
+  geom_text_repel(aes(label = ID, colour = Cluster), size = 3, box.padding = 1.5)
+
+
+ltm <- list_to_matrix(oras$geneID)
+pca <- prcomp(t(ltm))
+rownames(oras) <- oras$ID
+set.seed(42)
+cl <- hdbscan(t(ltm), minPts = 2, gen_simplified_tree = F)
+oras$Cluster <- as.factor(cl$cluster)
+oras$ID <- stringr::str_to_title(oras$ID)
+oras$ID <- sub(".*? ", "", oras$ID)
+oras$ID <- stringr::str_wrap(oras$ID, 25)
+
+
+autoplot(pca, data = oras, colour = "Cluster",
+         label.show.legend = F) +
+  geom_text_repel(aes(label = ID, colour = Cluster), size = 3, max.overlaps = 25, force = 2)

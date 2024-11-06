@@ -7,6 +7,10 @@ library(viridis)
 library(ggrepel)
 library(dendextend)
 library(ggh4x)
+library(dbscan)
+library(ggrepel)
+library("FactoMineR")
+library("factoextra")
 
 remove_geom <- function(ggplot2_object, geom_type) {
   # Delete layers that match the requested type.
