@@ -227,7 +227,7 @@ MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
 
 compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cc = F, csplit=T, dlists, cols, annoCol, clegend=F, rsplit=NULL, modcols){
   meta <- metadata[which(metadata$Region == region), ]
-  meta <- meta[which(meta$Pheno %in% pheno), ]
+  meta <- meta[which(meta$PhenoNames %in% pheno), ]
   m <- lcounts[glist$ens_gene, which(colnames(lcounts) %in% meta$SampleNumber)]
 
   annoRow <- list()
@@ -258,7 +258,6 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cc = 
     anno_df[,i] <- rownames(m)
   }
   colnames(anno_df) <- names(dlists)
-  
   rha = rowAnnotation(df=anno_df, col=annoRow, show_legend = F)
   cha = HeatmapAnnotation(Group = meta[,c("PhenoNames")], col=annoCol, show_legend = clegend, show_annotation_name = F,
                           annotation_legend_param = list(labels_gp = gpar(fontsize = 12), title_gp = gpar(fontsize = 13, fontface = "bold"),
@@ -272,7 +271,7 @@ compHeatmap <- function(pheno, region, order=NA, metadata, lcounts, glist, cc = 
   if (cc) {
     hc <- hclust(dist(t(m)), method="average")
     dd <- as.dendrogram(hc)
-    dd <- rotate(dd, as.character(meta$SampleNumber))
+    dd <- dendextend::rotate(dd, as.character(meta$SampleNumber))
     #dd <- reorder(dd, meta$SampleNumber)
     cspl = 4
     ctitle = NULL

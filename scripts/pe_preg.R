@@ -9,6 +9,8 @@ library(dendextend)
 library(ggh4x)
 library(dbscan)
 library(ggrepel)
+library(ggfortify)
+library(circlize)
 library("FactoMineR")
 library("factoextra")
 

@@ -22,7 +22,7 @@ ss <- PEd21_SDd21$symbol[!(PEd21_SDd21$symbol %in% dd)]
 source("utils.R")
 region = "LV"
 groups <- dds.h$Group[grepl(region, dds.h$Group)]
-gene = ""
+gene = "ENSRNOG00000013578"
 
 title = unique(t2g$symbol[which(t2g$ens_gene==gene)])
 my_comparisons <- list(c("LV_PEd21", "LV_SDd21"), c("LV_PEpp", "LV_SDpp"))
