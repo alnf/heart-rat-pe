@@ -96,9 +96,9 @@ makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02, 
     imagetype="png" ,
     height = height , 
     width = width , 
-    resolution = 300,
+    resolution = 200,
     compression = "lzw",
-    margin = 0.05, 
+    margin = 0.15, 
 
     # Circles
     lwd = 2,
@@ -116,13 +116,13 @@ makeVenn <- function(n, genesList, names, title, filename, colors, dist = 0.02, 
     #ext.pos = -4,
     
     # Set names
-    main.cex = 0.4,
+    main.cex = 0.6,
     main.fontface = "bold",
-    cat.cex = 0.5,
+    cat.cex = 0.6,
     #cat.fontface = "bold",
     cat.default.pos = "outer",
-    cat.pos = rep(0, n),
-    cat.dist = rep(dist, n)
+    #cat.pos = rep(0, n),
+    #cat.dist = rep(dist, n)
   )
 }
 

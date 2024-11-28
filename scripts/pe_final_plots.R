@@ -12,6 +12,7 @@ library(ggrepel)
 library(ggfortify)
 library(circlize)
 library(ggpubr)
+library(circlize)
 library("FactoMineR")
 library("factoextra")
 
@@ -60,18 +61,31 @@ autoplot(pca, data = metadata.left,
        scale_fill_manual(values = mcols)
 ggsave("../plots/final/pca.png", width = 8.7, height = 6, scale = 0.8, dpi = 150)
 
+#fviz_eig(pca, addlabels = TRUE, ncp=10)
+#lbls <- PEd21_SDd21$symbol
+#names(lbls) <- PEd21_SDd21$ens_gene
+#fviz_contrib(pca, choice = "var", axes = 1, top = 20) + scale_x_discrete(labels = lbls)
+#fviz_contrib(pca, choice = "var", axes = 2, top = 20) + scale_x_discrete(labels = lbls)
 
 ## Plotting Venns
 
 names = c("PEd21_SDd21" , "PEpp_SDpp", "PEd21_PEpp", "SDd21_SDpp")
 fname = paste(names, collapse="_")
 fname = paste("../plots/final/final_venn_", fname, ".png", sep="")
-names = c("PEpreg_WTpreg", "PEpost_WTpost", "PEpreg_PEpost", "WTpreg_WTpost")
+n1 = length(PEd21_SDd21$ens_gene[which(abs(PEd21_SDd21$log2FoldChange)>1)])
+n2 = length(PEpp_SDpp$ens_gene[which(abs(PEpp_SDpp$log2FoldChange)>1)])
+n3 = length(PEd21_PEpp$ens_gene[which(abs(PEd21_PEpp$log2FoldChange)>1)])
+n4 = length(SDd21_SDpp$ens_gene[which(abs(SDd21_SDpp$log2FoldChange)>1)])
+
+names = c(paste("preg, n=", n1, sep=""),
+          paste("post, n=", n2, sep=""),
+          paste("deltaPE, n=", n3, sep=""),
+          paste("deltaWT, n=", n4, sep=""))
 makeVenn(4, list(PEd21_SDd21$ens_gene[which(abs(PEd21_SDd21$log2FoldChange)>1)], PEpp_SDpp$ens_gene[which(abs(PEpp_SDpp$log2FoldChange)>1)],
                  PEd21_PEpp$ens_gene[which(abs(PEd21_PEpp$log2FoldChange)>1)], SDd21_SDpp$ens_gene[which(abs(SDd21_SDpp$log2FoldChange)>1)]),
          names,
-         paste("DEGs in pregnancy and postpartum between PE and WT,\n and pregnancy in both PE and WT,\n lFC=1, ngenes=", nrow(genes_pe_lfc1), sep=""),
-         fname, c(mcols["PEpregWT"], mcols["PEpostWT"], mcols["pregPEpost"], mcols["pregWTpost"]), dist=0.15, width=850, height=700)
+         paste("Venn diagram of DEGs in 4 groups of comparison,\n lFC=1, ngenes=", nrow(genes_pe_lfc1), sep=""),
+         fname, c(mcols["preg"], mcols["post"], mcols["deltaPE"], mcols["deltaWT"]), dist=0.15, width=650, height=550)
 
 ## Plotting heatmaps, ora
 
@@ -100,10 +114,16 @@ m2 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M2"),]$genes)
 m3 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M3"),]$genes)
 m4 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M4"),]$genes)
 m5 <- data.frame(ens_gene=cem@module[which(cem@module$modules=="M5"),]$genes)
+m1n <- nrow(m1)
+m2n <- nrow(m2)
+m3n <- nrow(m3)
+m4n <- nrow(m4)
+m5n <- nrow(m5)
+
 
 dlists <- list(preg=PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),], post=PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),],
-               pregPEpost=PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),], pregWTpost=SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),])
-cols <- list(preg=mcols["PEpregWT"], post=mcols["PEpostWT"], pregPEpost=mcols["pregPEpost"], pregWTpost=mcols["pregWTpost"])
+               deltaPE=PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),], deltaWT=SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),])
+cols <- list(preg=mcols["preg"], post=mcols["post"], deltaPE=mcols["deltaPE"], deltaWT=mcols["deltaWT"])
 acols <- list(Group = mcols)
 modcols <- mcols[9:14]
 
@@ -195,7 +215,7 @@ axis_text_color <- function(plot, plot_data) {
     colors <- colors[match(labels, colors$ID),]
     colors <- colors$col
     names(colors) <- labels
-    g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = colors, lineheight = 0.9)    
+    #g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$gp <- gpar(col = colors, lineheight = 0.9)    
     labels <- sub(".*? ", "", labels)
     g$grobs[[i]]$children[[2]]$grobs[[2]]$children[[1]]$label <- labels
   }
@@ -204,9 +224,9 @@ axis_text_color <- function(plot, plot_data) {
 
 png("../plots/final/enrich_genes_pe_lfc1.png",  width = 10, height = 10, units="in", res=80)
 axis_text_color(p, plot_data)
-pcols <- c("HALLMARK"="black", "GO Biological Process"="#217364")
-lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
-draw(lgd, x = unit(0.3, "in"), y = unit(0.3, "in"), just = c("left", "bottom"))
+#pcols <- c("HALLMARK"="black", "GO Biological Process"="#217364")
+#lgd = Legend(labels = names(pcols), title = "Pathway", labels_gp = gpar(fontsize = 8), nrow = 1, legend_gp = gpar(fill = pcols))
+#draw(lgd, x = unit(0.3, "in"), y = unit(0.3, "in"), just = c("left", "bottom"))
 dev.off()
 
 
@@ -237,7 +257,7 @@ draw(us, padding = unit(c(2, 25, 2, 2), "mm"))
 dev.off()
 
 ## Plot PCA of enrichment
-modname = "M5"
+modname = "M1"
 
 oras <- ora[which(ora$Module==modname),]
 ltm <- list_to_matrix(oras$geneID)
@@ -268,10 +288,10 @@ ggsave(paste("../plots/final/pca_enrich_pe_lfc1_",modname,".png", sep=""), width
 ## Plot heatmap of enrichment
 
 colors = structure(c("#494C6F", "#D80032"), names = c("0", "1"))
-rha = rowAnnotation(cluster = oras$Cluster, pathway = oras$pathway, show_legend = T, col=rcols)
+rha = rowAnnotation(cluster = oras$Cluster,
+                    #pathway = oras$pathway,
+                    show_legend = F, col=rcols)
 
-degs_list <- list(PEd21_SDd21, PEpp_SDpp)
-names(degs_list) <- c("preg", "post")
 
 get_fc_heatmap <- function(gnames, degs_list) {
   ltm_df <- data.frame(row.names = rownames(ltm), ens_gene = rownames(ltm))
@@ -283,53 +303,84 @@ get_fc_heatmap <- function(gnames, degs_list) {
   rownames(ltm_df) <- ltm_df$ens_gene
   ltm_df <- ltm_df[,-c(1)]
   colnames(ltm_df) <- names(degs_list)
+  pch = rep("x", nrow(ltm))
   return(ltm_df)
 }
-ltm_df <- get_fc_heatmap(rownames(lts), degs_list)
 
 
-# ltm_df <- data.frame(row.names = rownames(ltm), ens_gene = rownames(ltm))
-# ltm_df <- merge(ltm_df, PEd21_SDd21[, c("ens_gene", "log2FoldChange")], by="ens_gene", all.x=T)
-# colnames(ltm_df)[2] <- c("preg_log2FC")
-# ltm_df <- merge(ltm_df, PEpp_SDpp[, c("ens_gene", "log2FoldChange")], by="ens_gene", all.x=T)
-# colnames(ltm_df)[3] <- c("post_log2FC")
-# rownames(ltm_df) <- ltm_df$ens_gene
-# ltm_df <- ltm_df[,c(2:3)]
+degs_list <- list(PEd21_SDd21, PEpp_SDpp)
+names(degs_list) <- c("preg", "post")
+ltm_df1 <- get_fc_heatmap(rownames(lts), degs_list)
+pch1 <- as.matrix(ifelse(abs(ltm_df1)>1, "‧", NA))
+pch1col <- as.matrix(ifelse(ltm_df1>1, "black", NA))
+pch1col[which(ltm_df1<(-1))] <- "white"
 
-library(circlize)
-col_fun = colorRamp2(c(min(ltm_df, na.rm=T), 0, max(ltm_df, na.rm=T)), c("blue", "white", "red"))
+  
+degs_list <- list(PEd21_PEpp, SDd21_SDpp)
+names(degs_list) <- c("deltaPE", "deltaWT")
+ltm_df2 <- get_fc_heatmap(rownames(lts), degs_list)
+pch2 <- as.matrix(ifelse(abs(ltm_df2)>1, "‧", NA))
+pch2col <- as.matrix(ifelse(ltm_df2>1, "black", NA))
+pch2col[which(ltm_df2<(-1))] <- "white"
+  
+min_ltm <- min(min(ltm_df1, na.rm=T), min(ltm_df2, na.rm=T))
+max_ltm <- max(max(ltm_df1, na.rm=T), max(ltm_df2, na.rm=T))
 
-#mcols = c("TRUE"="darkgreen", "FALSE"="white")
-#acols <- list(Group = mcols)
+if (min_ltm>0) {
+  col_fun = colorRamp2(c(0, max_ltm), c("white", "red"))
+} else if (max_ltm<0) {
+  col_fun = colorRamp2(c(min_ltm, 0), c("blue","white"))
+} else {
+  col_fun = colorRamp2(c(min_ltm, 0, max_ltm), c("blue", "white", "red"))
+}
 
-cha = HeatmapAnnotation(log2FC = cbind(preg=ltm_df$preg, post=ltm_df$post),
-                        show_legend = T, show_annotation_name = T, annotation_name_side = "left",
-                        col=list(log2FC = col_fun),
-                        annotation_legend_param = list(title = "log2FC"),
-                        na_col = "black")
+
+lgd1 = Legend(col_fun = col_fun, title = "log2FC", direction="horizontal")
+lgd2 = Legend(labels=c("logFC>1", "logFC<-1", "not significant"), direction="horizontal",
+              pch="‧", type = "points",
+              legend_gp = gpar(col = c("black", "white", "black")),
+              background = c("red","blue", "black"))
+
+fontfaces = rep("plain", nrow(ltm))
+fontfaces[56] <- "bold"
 
 gnames <- data.frame(ens_gene=rownames(ltm))
 clabs <- merge(gnames, t2g, by="ens_gene")
 clabs <- clabs[!duplicated(clabs$ens_gene),]
 clabs[which(clabs$symbol==""),]$symbol <- clabs[which(clabs$symbol==""),]$msymbol
+clabs$symbol[56] <- paste(clabs$symbol[56], "────────", sep=" ")
 
-max_width = grobWidth(textGrob(oras$ID, gpar(fontsize = 20, fontface = 1)))
-max_width = convertWidth(max_width, "mm")
+cha1 = HeatmapAnnotation(preg=anno_simple(ltm_df1$preg, pch = pch1[,1], col=col_fun, na_col = "black", pt_gp=gpar(col=pch1col[,1])),
+                         post=anno_simple(ltm_df1$post, pch = pch1[,2], col=col_fun, na_col = "black", pt_gp=gpar(col=pch1col[,2])),
+                         show_annotation_name = T, annotation_name_side = "left",
+                         genes=anno_text(clabs$symbol, gp = gpar(fontface = fontfaces, fontsize=11)),
+                         gap = unit(2, "points"))
 
-ht = Heatmap(t(ltm), clustering_distance_rows = "binary", right_annotation = rha, bottom_annotation = cha, row_split = oras$Cluster,
-             name = "gene", rect_gp = gpar(col = "#725A62", lwd = 1),
-             col = colors, row_names_max_width = max_width,
+cha2 = HeatmapAnnotation(deltaWT=anno_simple(ltm_df2$deltaWT, pch = pch2[,2], col=col_fun, na_col = "black", pt_gp=gpar(col=pch2col[,2])),
+                         deltaPE=anno_simple(ltm_df2$deltaPE, pch = pch2[,1], col=col_fun, na_col = "black", pt_gp=gpar(col=pch2col[,1])),
+                         show_annotation_name = T, annotation_name_side = "left",
+                         gap = unit(2, "points"))
+
+ht = Heatmap(t(ltm), clustering_distance_rows = "binary", right_annotation = rha, bottom_annotation = cha1, top_annotation = cha2,
+             row_split = oras$Cluster,
+             name = "gene", rect_gp = gpar(col = "#725A62", lwd = 1), show_heatmap_legend = F,
+             col = colors, row_names_max_width = unit(3000, "mm"),
              row_labels = stringr::str_wrap(oras$ID, 30),
-             column_labels = clabs$symbol)
-ht
+             column_labels = clabs$symbol,
+             column_names_rot = 90,
+             column_names_gp = gpar(fontsize = 11),
+             show_column_names = F)
+
+draw(ht, padding = unit(c(7, 2, 2, 10), "mm"), annotation_legend_list = list(lgd1, lgd2), annotation_legend_side = "bottom")
+
 
 #M1 25 6.1
 #M2 11 7
 #M3 13 6.5
 #M4 8 5.5
 #M5 8 4.5
-png(paste("../plots/final/heatmap_enrich_pe_lfc1_",modname,".png", sep=""), width = 8, height = 4.5, units="in", res=100)
-draw(ht, padding = unit(c(7, 2, 2, 5), "mm"))
+png(paste("../plots/final/heatmap_enrich_pe_lfc1_",modname,".png", sep=""), width = 25, height = 7, units="in", res=100)
+draw(ht, padding = unit(c(7, 2, 2, 10), "mm"), annotation_legend_list = list(lgd1, lgd2), annotation_legend_side = "bottom")
 dev.off()
 
 sclist <- read.table("../metadata/sc_list.tsv", sep="\t", header = T)
