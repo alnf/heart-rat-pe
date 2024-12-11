@@ -13,6 +13,9 @@ library(ggfortify)
 library(circlize)
 library(ggpubr)
 library(circlize)
+library(reshape2)
+library(lemon)
+library(fgsea)
 library("FactoMineR")
 library("factoextra")
 
@@ -121,8 +124,9 @@ m4n <- nrow(m4)
 m5n <- nrow(m5)
 
 
-dlists <- list(preg=PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),], post=PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),],
-               deltaPE=PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),], deltaWT=SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),])
+#dlists <- list(preg=PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),], post=PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),],
+#               deltaPE=PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),], deltaWT=SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),])
+dlists <- list(preg=PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),], post=PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),])
 cols <- list(preg=mcols["preg"], post=mcols["post"], deltaPE=mcols["deltaPE"], deltaWT=mcols["deltaWT"])
 acols <- list(Group = mcols)
 modcols <- mcols[9:14]
@@ -140,7 +144,7 @@ order <- c("PEpreg", "WTpreg", "PEpost", "WTpost")
 pheno <- order
 ht <- compHeatmap(pheno, region, order, metadata.h, lcounts, glist, cc=F, csplit=T, dlists, cols, acols, clegend=F, rsplit=rspl$modules, modcols)
 draw(ht, padding = unit(c(5, 2, 2, 3), "mm"), heatmap_legend_side = "bottom")
-png("../plots/final/final_heatmap_genes_pe_lfc1.png", width = 10.5, height = 9, units="in", res=100)
+png("../plots/final/final_heatmap_genes_pe_lfc1_2vars.png", width = 10.5, height = 9, units="in", res=100)
 draw(ht, padding = unit(c(5, 2, 2, 3), "mm"), heatmap_legend_side = "bottom")
 dev.off()
 
@@ -257,7 +261,7 @@ draw(us, padding = unit(c(2, 25, 2, 2), "mm"))
 dev.off()
 
 ## Plot PCA of enrichment
-modname = "M1"
+modname = "M5"
 
 oras <- ora[which(ora$Module==modname),]
 ltm <- list_to_matrix(oras$geneID)
@@ -341,14 +345,27 @@ lgd2 = Legend(labels=c("logFC>1", "logFC<-1", "not significant"), direction="hor
               legend_gp = gpar(col = c("black", "white", "black")),
               background = c("red","blue", "black"))
 
-fontfaces = rep("plain", nrow(ltm))
-fontfaces[56] <- "bold"
-
 gnames <- data.frame(ens_gene=rownames(ltm))
 clabs <- merge(gnames, t2g, by="ens_gene")
 clabs <- clabs[!duplicated(clabs$ens_gene),]
 clabs[which(clabs$symbol==""),]$symbol <- clabs[which(clabs$symbol==""),]$msymbol
-clabs$symbol[56] <- paste(clabs$symbol[56], "────────", sep=" ")
+
+ind <- c()
+ind <- c(ind, which(clabs$symbol=="Dpp4"))
+ind <- c(ind, which(clabs$symbol=="Mmp12"))
+ind <- c(ind, which(clabs$symbol=="Trem2"))
+ind <- c(ind, which(clabs$symbol=="Postn"))
+ind <- c(ind, which(clabs$symbol=="Cd1d1"))
+ind <- c(ind, which(clabs$symbol=="Gbp1"))
+ind <- c(ind, which(clabs$symbol=="Vegfd"))
+ind <- c(ind, which(clabs$symbol=="Rrm2"))
+ind <- c(ind, which(clabs$symbol=="Mx1"))
+
+
+clabs$symbol[ind] <- paste(clabs$symbol[ind], "────────", sep=" ")
+fontfaces = rep("plain", nrow(ltm))
+fontfaces[ind] <- "bold"
+
 
 cha1 = HeatmapAnnotation(preg=anno_simple(ltm_df1$preg, pch = pch1[,1], col=col_fun, na_col = "black", pt_gp=gpar(col=pch1col[,1])),
                          post=anno_simple(ltm_df1$post, pch = pch1[,2], col=col_fun, na_col = "black", pt_gp=gpar(col=pch1col[,2])),
@@ -373,20 +390,96 @@ ht = Heatmap(t(ltm), clustering_distance_rows = "binary", right_annotation = rha
 
 draw(ht, padding = unit(c(7, 2, 2, 10), "mm"), annotation_legend_list = list(lgd1, lgd2), annotation_legend_side = "bottom")
 
-
-#M1 25 6.1
-#M2 11 7
-#M3 13 6.5
-#M4 8 5.5
-#M5 8 4.5
-png(paste("../plots/final/heatmap_enrich_pe_lfc1_",modname,".png", sep=""), width = 25, height = 7, units="in", res=100)
+if (modname == "M1") {
+  w = 25
+  h = 7.8
+}
+if (modname == "M2") {
+  w = 11
+  h = 9
+}
+if (modname == "M3") {
+  w = 13
+  h = 7
+}
+if (modname == "M4") {
+  w = 7
+  h = 7
+}
+if (modname == "M5") {
+  w = 7
+  h = 6
+}
+png(paste("../plots/final/heatmap_enrich_pe_lfc1_",modname,".png", sep=""), width = w, height = h, units="in", res=100)
 draw(ht, padding = unit(c(7, 2, 2, 10), "mm"), annotation_legend_list = list(lgd1, lgd2), annotation_legend_side = "bottom")
 dev.off()
 
-sclist <- read.table("../metadata/sc_list.tsv", sep="\t", header = T)
-sclist <- sclist[!duplicated(sclist$hsymbol),,drop=F]
-sclist <- merge(sclist, t2gh, by="hsymbol")
-sclist <- sclist[!duplicated(sclist$ens_gene),]
+#sclist <- read.table("../metadata/sc_list.tsv", sep="\t", header = T)
+#sclist <- sclist[!duplicated(sclist$hsymbol),,drop=F]
+#sclist <- merge(sclist, t2gh, by="hsymbol")
+#sclist <- sclist[!duplicated(sclist$ens_gene),]
+
+
+# MA plots
+imp <- PEd21_SDd21[which(abs(PEd21_SDd21$log2FoldChange)>1),]
+degs <- read.table("../degs/LV/degs_LV_PEd21_LV_SDd21.tsv", sep="\t", header = T, stringsAsFactors = F)
+
+imp <- PEpp_SDpp[which(abs(PEpp_SDpp$log2FoldChange)>1),]
+degs <- read.table("../degs/LV/degs_LV_PEpp_LV_SDpp.tsv", sep="\t", header = T, stringsAsFactors = F)
+
+imp <- PEd21_PEpp[which(abs(PEd21_PEpp$log2FoldChange)>1),]
+degs <- read.table("../degs/LV/degs_LV_PEd21_LV_PEpp.tsv", sep="\t", header = T, stringsAsFactors = F)
+
+imp <- SDd21_SDpp[which(abs(SDd21_SDpp$log2FoldChange)>1),]
+degs <- read.table("../degs/LV/degs_LV_SDd21_LV_SDpp.tsv", sep="\t", header = T, stringsAsFactors = F)
+
+imp$degs <- NA
+imp$degs[which(imp$log2FoldChange>0)] <- "up"
+imp$degs[which(imp$log2FoldChange<0)] <- "down"
+
+degs <- merge(degs, imp[c("ens_gene", "degs")], by="ens_gene", all.x=T)
+degs <- degs[which(!is.na(degs$log2FoldChange)),]
+degs <- degs[-which(degs$ens_gene==agt$ens_gene),]
+degs$degs <- factor(degs$degs, levels = c("up", "down"))
+degs <- degs %>% filter(!str_detect(description, 'ribosomal RNA'))
+
+MAplot(degs, 7.5, 1, 0.5, paste("PEpreg vs WTpreg, |logFC>1|, ngenes =", nrow(imp)), 15, length(which(imp$degs=="up")), length(which(imp$degs=="down")))
+ggsave("../plots/final/ma_preg.png", width = 10, height = 8, dpi = 100)
+
+MAplot(degs, 7.5, 1, 0.5, paste("PEpost vs WTpost, |logFC>1|, ngenes =", nrow(imp)), 15, length(which(imp$degs=="up")), length(which(imp$degs=="down")))
+ggsave("../plots/final/ma_post.png", width = 10, height = 8, dpi = 100)
+
+MAplot(degs, 7.5, 1, 0.5, paste("PEpreg vs PEpost, |logFC>1|, ngenes =", nrow(imp)), 15, length(which(imp$degs=="up")), length(which(imp$degs=="down")))
+ggsave("../plots/final/ma_deltaPE.png", width = 10, height = 8, dpi = 100)
+
+MAplot(degs, 7.5, 1, 0.5, paste("WTpreg vs WTpost, |logFC>1|, ngenes =", nrow(imp)), 15, length(which(imp$degs=="up")), length(which(imp$degs=="down")))
+ggsave("../plots/final/ma_deltaSD.png", width = 10, height = 8, dpi = 100)
+
+
+## Average expression per module
+m <- lcounts[genes_pe_lfc1$ens_gene, which(colnames(lcounts) %in% metadata.left$SampleNumber)]
+mods <- cem@module
+
+grouped_columns <- split(seq_along(colnames(m)), factor(metadata.left$PhenoNames))
+row_means_by_group <- lapply(grouped_columns, function(cols) rowMeans(m[, cols]))
+result <- do.call(cbind, row_means_by_group)
+colnames(result) <- names(grouped_columns)
+result <- as.data.frame(result)
+result$genes <- rownames(result)
+result <- merge(result, mods, by="genes")
+result <- melt(result, id=c("genes", "modules"), variable.name="group", value.name="expression")
+
+ggplot(result, aes(x=group, y=expression, fill=group, group=genes)) +
+  geom_boxplot(aes(group=group)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha=0.2) +
+  geom_line(alpha=0.5, color="red")+
+  facet_wrap(~modules) +
+  scale_fill_manual(values = mcols)
+
+
+## FGSEA
+
+
 
 
 ## More ontologies

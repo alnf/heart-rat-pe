@@ -200,22 +200,24 @@ regionPlot <- function(dds, region, ens_genes, filename, width=10, height=7){
            main = paste(region, ", ngenes=", length(ens_genes), sep=""))    
 }
 
-MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title){
-  ggplot(degs, aes(x=log2(baseMean+1), y=log2FoldChange, color=degs, label=hsymbol)) +
-    geom_point(alpha=0.7) +
+MAplot <- function(resDegs, mean_limit, fc_limit, nudge, title, maxoverlap = 20, nup, ndown){
+  ggplot(degs, aes(x=log2(baseMean+1), y=log2FoldChange, color=degs, label=symbol)) +
+    geom_point(alpha=0.3) +
     geom_hline(yintercept=0, color = "gray", size=1) +
-    scale_y_continuous(breaks = scales::pretty_breaks(n = 7)) +
+    scale_y_continuous(breaks = c(-10, -5, 0, 5, 10, 15, 20), limits = c(-10, 20)) +
     geom_text_repel(data          = subset(degs, (log2(baseMean+1) > mean_limit) & !is.na(degs) & abs(log2FoldChange) > fc_limit),
                     nudge_y       = nudge,
                     nudge_x       = nudge,
-                    size          = 6,
+                    size          = 4,
                     box.padding   = 0.5,
                     point.padding = 0.5,
                     force         = 1,
                     segment.color = "grey50",
                     direction     = "both",
-                    max.overlaps = 20,
+                    max.overlaps = maxoverlap,
                     show.legend = F) +
+    scale_color_manual(values = c("red", "blue", "lightgray"),
+                       labels = c(paste("up, n=", nup, sep=""), paste("down, n=", ndown, sep=""), "NA")) +
     labs(title=title) +
     theme(plot.title = element_text(vjust=-7, hjust=1, size=16),
           axis.title = element_text(size=14),

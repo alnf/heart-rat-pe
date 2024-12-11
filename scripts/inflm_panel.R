@@ -104,3 +104,21 @@ ht = Heatmap(t(scale(t(m))), show_row_names = T, show_row_dend = F, show_column_
 png("../plots/pe_preg/heatmap_main_genes.png", width = 10.5, height = 19, units="in", res=80)
 draw(ht, padding = unit(c(1, 1, 1, 2), "mm"))
 dev.off()
+
+
+# Meso-scale panel
+
+meso <- read.table("../metadata/meso-scale.tsv", sep="\t", header = T)
+meso$PhenoNames <- paste(meso$Pheno, meso$Group, sep="")
+meso$PhenoNames <- factor(meso$PhenoNames, levels=c("PEpreg", "WTpreg", "PEpost", "WTpost"))
+
+ggboxplot(data=meso, x="PhenoNames", y="Concentration", group = "Assay", color="PhenoNames", add = "jitter",
+          ggtheme = theme_gray()) +
+          scale_y_continuous(expand = expansion(mult = .1)) +
+          scale_color_manual(values = mcols) +
+          stat_compare_means(method = "t.test", comparisons = list(c("PEpreg", "WTpreg"), c("PEpost", "WTpost")),
+                             na.rm=T) +
+          facet_wrap(~Assay, scales="free")
+  
+  
+  
