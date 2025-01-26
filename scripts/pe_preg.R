@@ -37,7 +37,8 @@ annoCol <- list(Group = colors)
 metadata.left <- metadata.h[which(metadata.h$Region == "LV"), ]
 metadata.left <- metadata.left[-which(metadata.left$Pheno == "np"), ]
 
-t2gh <- biomaRt::getBM(attributes = c("ensembl_gene_id","hsapiens_homolog_associated_gene_name"), mart = ensembl)
+biomaRt::listAttributes(mart = ensembl)
+t2gh <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hsapiens_homolog_ensembl_gene", "hsapiens_homolog_associated_gene_name"), mart = ensembl)
 t2gh <- dplyr::rename(t2gh, ens_gene = ensembl_gene_id, hsymbol = hsapiens_homolog_associated_gene_name)
 
 lcounts <- as.data.frame(lcounts)

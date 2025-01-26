@@ -1,5 +1,5 @@
 library(CEMiTool)
-library(CeTF)
+#library(CeTF)
 library(dplyr)
 library(ComplexHeatmap)
 library(ggplot2)
@@ -10,14 +10,15 @@ library(ggh4x)
 library(dbscan)
 library(ggrepel)
 library(ggfortify)
-library(circlize)
 library(ggpubr)
-library(circlize)
 library(reshape2)
 library(lemon)
 library(fgsea)
 library("FactoMineR")
 library("factoextra")
+library(VennDiagram)
+source("utils.R")
+library(ggVennDiagram)
 
 ### Metadata
 
@@ -564,10 +565,3 @@ ora <- cem@ora
 ora$geneRatio <- sapply(ora$GeneRatio, function(x) eval(parse(text=x)))
 ora <- ora[which(ora$Count>5),]
 ora %>% group_by(Module) %>% slice_max(order_by = geneRatio, n = 10) -> ora
-
-
-
-
-
-
-
