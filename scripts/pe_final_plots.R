@@ -565,3 +565,86 @@ ora <- cem@ora
 ora$geneRatio <- sapply(ora$GeneRatio, function(x) eval(parse(text=x)))
 ora <- ora[which(ora$Count>5),]
 ora %>% group_by(Module) %>% slice_max(order_by = geneRatio, n = 10) -> ora
+
+
+
+### Rarefaction
+
+rarefaction <- read.table("../metadata/rarefaction.tsv", sep="\t", header = T)
+rarefaction$modules <- NA
+rat$modules <- NA
+ratback <- rat
+
+modules <- c("m1", "m2", "m3", "m4", "m5")
+
+for (i in 1:length(modules)) {
+  rat$modules[which(rat$ens_gene %in% eval(parse(text = modules[i]))$ens_gene)] <- modules[i] 
+}
+
+library(stringi)
+
+for (i in 1:nrow(rat)) {
+  ind <- which(stri_detect_fixed(rarefaction$Human.Gene.s., rat$hsymbol[i]))
+  rarefaction$modules[ind] <- paste(rarefaction$modules[ind], rat$modules[i], sep=", ")
+}
+
+rarefaction$modules <- gsub("NA, ", "", rarefaction$modules)
+write.table(rarefaction, "../metadata/rarefaction.tsv", sep="\t", row.names = F)
+
+
+### Separate genes
+
+# Endo
+genes = c("ENSRNOG00000014333", "ENSRNOG00000020679", "ENSRNOG00000010797", "ENSRNOG00000037931",
+          "ENSRNOG00000016696", "ENSRNOG00000014361", "ENSRNOG00000005933", "ENSRNOG00000014350",
+          "ENSRNOG00000025143", "ENSRNOG00000005854", "ENSRNOG00000013324", "ENSRNOG00000063592",
+          "ENSRNOG00000000940", "ENSRNOG00000002511")
+# Fibro
+genes <- c("ENSRNOT00000115096", "ENSRNOG00000011292", "ENSRNOG00000003357", "ENSRNOG00000014288",
+           "ENSRNOG00000012660", "ENSRNOG00000045829", "ENSRNOG00000015036", "ENSRNOG00000014426",
+           "ENSRNOG00000002418", "ENSRNOG00000058039", "ENSRNOG00000010208", "ENSRNOG00000013925", 
+           "ENSRNOG00000011821")
+
+dg <- PEd21_SDd21[which(PEd21_SDd21$ens_gene %in% genes), c("ens_gene","log2FoldChange")]
+dadj <- PEd21_SDd21[which(PEd21_SDd21$ens_gene %in% genes), c("ens_gene","padj")]
+colnames(dg)[2] <- "preg"
+dgenes <- dg
+
+dg <- PEpp_SDpp[which(PEpp_SDpp$ens_gene %in% genes), c("ens_gene","log2FoldChange")]
+dadj <-merge(dadj, PEpp_SDpp[which(PEpp_SDpp$ens_gene %in% genes), c("ens_gene","padj")], by="ens_gene")
+colnames(dg)[2] <- "post"
+dgenes <- merge(dgenes, dg, by="ens_gene")
+
+dg <- PEd21_PEpp[which(PEd21_PEpp$ens_gene %in% genes), c("ens_gene","log2FoldChange")]
+dadj <- merge(dadj, PEd21_PEpp[which(PEd21_PEpp$ens_gene %in% genes), c("ens_gene","padj")], by="ens_gene")
+colnames(dg)[2] <- "deltaPE"
+dgenes <- merge(dgenes, dg, by="ens_gene")
+
+dg <- SDd21_SDpp[which(SDd21_SDpp$ens_gene %in% genes), c("ens_gene","log2FoldChange")]
+dadj <- merge(dadj, SDd21_SDpp[which(SDd21_SDpp$ens_gene %in% genes), c("ens_gene","padj")], by="ens_gene")
+colnames(dg)[2] <- "deltaWT"
+dgenes <- merge(dgenes, dg, by="ens_gene")
+
+rownames(dadj) <- dadj$ens_gene
+dadj <- dadj[,c(2:5)]
+dgenes <- merge(dgenes, t2g[,c("ens_gene", "symbol", "msymbol")], by="ens_gene")
+dgenes <- dgenes[!duplicated(dgenes$ens_gene),]
+dgenes$symbol[which(dgenes$symbol=="")] <- dgenes$msymbol[which(dgenes$symbol=="")]
+
+rownames(dgenes) <- dgenes$symbol
+dgenes <- dgenes[,c(2:5)]
+
+library(circlize)
+col_fun = colorRamp2(c(min_ltm, 0, max_ltm), c("blue", "white", "red"))
+                     
+ht <- Heatmap(dgenes, name = "logFC", cluster_rows = F, cluster_columns = F, col=col_fun,
+          column_split = c("condition", "condition", "time", "time"),
+          cell_fun = function(j, i, x, y, width, height, fill) {
+            if(dadj[i, j] < 0.05)
+              grid.text(sprintf("%.1f", dgenes[i, j]), x, y, gp = gpar(fontsize = 10))
+          }
+          )
+
+png(paste("../plots/final/heatmap_fibro_genes",".png", sep=""), width = 6, height = 9, units="in", res=100)
+draw(ht, padding = unit(c(7, 2, 2, 10), "mm"))
+dev.off()

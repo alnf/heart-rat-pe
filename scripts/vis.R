@@ -19,15 +19,41 @@ dd <- intersect(PEd21_SDd21$symbol, PEpp_SDpp$symbol)
 ss <- PEd21_SDd21$symbol[!(PEd21_SDd21$symbol %in% dd)]
 
 ### Single gene plots
+library(ggpubr)
 source("utils.R")
 region = "LV"
-groups <- dds.h$Group[grepl(region, dds.h$Group)]
+#groups <- dds.h$Group[grepl(region, dds.h$Group)]
+groups <- levels(factor(metadata.left$Group))
+  
 gene = "ENSRNOG00000013578"
+gene = "ENSRNOG00000007545" #ANGPTL4
+gene = "ENSRNOG00000003587" #VEGFD
 
 title = unique(t2g$symbol[which(t2g$ens_gene==gene)])
+if (title=="") {
+  title = unique(t2g$msymbol[which(t2g$ens_gene==gene)])
+}
 my_comparisons <- list(c("LV_PEd21", "LV_SDd21"), c("LV_PEpp", "LV_SDpp"))
-fname = paste("../plots/genes/gene_", title, ".png", sep="")
+my_comparisons <- list(c("PEpreg", "WTpreg"), c("PEpost", "WTpost"))
+
+#fname = paste("../plots/genes/gene_", title, ".png", sep="")
 genePlot(dds.h, gene, "Group", groups, my_comparisons, fname, title)
+
+genes = c("ENSRNOG00000007545", "ENSRNOG00000016678", "ENSRNOG00000003587", "ENSRNOG00000031232",
+          "ENSRNOG00000017783", "ENSRNOG00000054957", "ENSRNOG00000007865", "ENSRNOG00000010797",
+          "ENSRNOG00000009227", "ENSRNOG00000014361", "ENSRNOG00000057443")
+
+genes = c("ENSRNOG00000014333", "ENSRNOG00000020679", "ENSRNOG00000010797", "ENSRNOG00000037931",
+          "ENSRNOG00000016696", "ENSRNOG00000014361", "ENSRNOG00000005933", "ENSRNOG00000014350",
+          "ENSRNOG00000025143", "ENSRNOG00000005854", "ENSRNOG00000013324", "ENSRNOG00000063592",
+          "ENSRNOG00000000940", "ENSRNOG00000002511")
+
+
+title = "Angiogenic & Endothelial‐Related Genes"
+title = "Dominik's list"
+
+fname = paste("../plots/final/rarefaction/ang_end", ".png", sep="")
+genePlotCute(dds.h, genes, "Group", groups, my_comparisons, metadata.left, mcols, fname, title)
 
 ### Region heatmap
 source("utils.R")

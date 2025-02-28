@@ -137,6 +137,42 @@ genePlot <- function(dds, gene, intgroup, groups, comparisons, filename, title){
   ggsave(filename, width = 7, height = 5, dpi=100)
 }
 
+genePlotCute <- function(dds, genes, intgroup, groups, comparisons, metadata, cols, filename, title){
+  d <- c()
+  for (gene in genes) {
+    dd <- plotCounts(dds, gene=which(rownames(dds)==gene), intgroup=intgroup, 
+                  returnData=TRUE, normalized = TRUE, transform = TRUE)
+    
+    t = unique(t2g$symbol[which(t2g$ens_gene==gene)])
+    if (length(t)==1) {
+      if (t=="") {
+        t = unique(t2g$msymbol[which(t2g$ens_gene==gene)])
+      }
+    } else {
+      t = t[-which(grepl("LOC", t))]
+      print(t)
+    }
+    
+    dd$gene = t
+    d <- rbind(d, dd)
+  }
+  
+  d <- d[which(d$Group %in% groups),]
+  d$count <- log2(d$count)
+  m <- metadata[,c("Group", "PhenoNames")]
+  d <- merge(d, m, by="Group")
+  d <- d[-which(duplicated(d$count)),]
+  d$PhenoNames <- factor(d$PhenoName, levels=c("PEpreg", "WTpreg", "PEpost", "WTpost"))
+  
+  ggboxplot(data=d, x="PhenoNames", y="count", color="PhenoNames", add = "jitter", title = title, ggtheme=theme_gray()) +
+    stat_compare_means(method = "t.test", comparisons = comparisons) +
+    scale_color_manual(values = cols) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    facet_wrap(~gene, ncol=3, scales = "free_y")
+  ggsave(filename, width = 12, height = 2.5*length(genes)/3, dpi=100)
+}
+
+
 genePlotRegionsBar <- function(dds, gene, intgroup, comparisons, filename, title){
   d <- plotCounts(dds, gene=which(rownames(dds)==gene), intgroup=intgroup, 
                   returnData=TRUE, normalized = TRUE, transform = TRUE)
