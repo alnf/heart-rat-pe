@@ -8,18 +8,22 @@ library(cowplot)
 library(patchwork)
 
 # String IDs
-modname = "m2"
-rat_ids <- rat[which(rat$modules == modname),]
+#rat_ids <- rat
+rat_ids <- rat[which(rat$modules %in% c("m1", "m2")),]
+
 rat_ids$symbol[which(rat_ids$symbol=="")]=rat_ids$msymbol[which(rat_ids$symbol=="")]
 rat_ids <- rat_ids[-which(duplicated(rat_ids$ens_gene)),]
 str_ids <- rba_string_map_ids(ids = rat_ids$symbol, species = 10116)
-fun_ids <- ora[which(ora$Module==toupper(modname)),]$geneID
+#rat_ids <- rat_ids[-which(duplicated(rat_ids$symbol)),]
+rat_ids <- merge(rat_ids, str_ids, by.x="symbol", by.y="queryItem")
+rat_ids <- merge(rat_ids, PEpp_SDpp[,c("ens_gene", "log2FoldChange")], by="ens_gene")
+fun_ids <- ora$geneID
 
 # 1. Read the edge list
 #edges <- read.table("../metadata/string_m2.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE)
 #nodes <- read.table("../metadata/string_m2_nodes.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE)
 
-edges <- rba_string_interactions_network(str_ids$stringId, species = 10116)
+edges <- rba_string_interactions_network(str_ids$stringId, species = 10116, required_score=700)
 
 # 2. Create an igraph graph object
 g <- igraph::graph_from_data_frame(edges[3:ncol(edges)], directed=FALSE)
@@ -31,6 +35,7 @@ g_tidy <- as_tbl_graph(g)
 num_nodes <- g_tidy %>% 
   as_tibble("nodes") %>% 
   nrow()
+num_nodes
 
 #znodes <- tibble(name = nodes$node[which(nodes$node_degree==0)])
 
@@ -38,7 +43,48 @@ num_nodes <- g_tidy %>%
 #  bind_nodes(znodes)
 
 # 5. Visualize with ggraph
-fixed_layout <- create_layout(g_tidy, layout = "fr")
+g_tidy_merged <- g_tidy %>%
+  mutate(name = as.character(name)) %>%
+  left_join(rat_ids, by = c("name" = "preferredName"))
+
+fixed_layout <- create_layout(g_tidy_merged, layout = "fr")
+nrow(fixed_layout)
+
+nodcols <- mcols[9:14]
+names(nodcols) <- c("m1", "m2", "m3", "m4", "m5", "NA")
+
+# Plot all modules
+col_fun = colorRamp2(c(min(rat_ids$log2FoldChange), 0, max(rat_ids$log2FoldChange)), c("blue", "white", "red"))
+
+pp <- ggraph(fixed_layout) +
+  geom_edge_link(alpha = 0.5, edge_colour="black") +
+  geom_node_point(aes(color = modules, fill=sign(log2FoldChange), size=abs(log2FoldChange)), shape = 21, stroke = 1.5) +
+  scale_color_manual(values = nodcols) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  geom_node_text(aes(label = name), repel = TRUE, size = 3) +
+  theme_graph()
+pp
+
+# Another layout
+
+g_tidy_main_comp <- g_tidy_merged %>%
+  mutate(component = group_components()) %>%
+  filter(component == which.max(table(component)))
+
+g_tidy_main_comp <- g_tidy_main_comp %>%
+  mutate(betweenness = centrality_betweenness()) %>%
+  mutate(deg = centrality_degree()) %>%
+  mutate(clo = centrality_closeness())
+
+layout_centr <- create_layout(g_tidy_main_comp, layout = "centrality", cent = betweenness)
+
+pp <- ggraph(layout_centr) +
+  geom_edge_link(alpha = 0.5, edge_colour="black") +
+  geom_node_point(aes(color = modules, size = betweenness)) +
+  scale_color_manual(values = nodcols) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 3) +
+  theme_graph()
+pp
 
 #################
 plot_list <- c()
